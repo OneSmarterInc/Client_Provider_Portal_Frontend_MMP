@@ -52,10 +52,9 @@ const Watchlist = () => {
 
   const [watchlistDataLoading, setwatchlistDataLoading] = useState(false);
   const fetchWatchlistItems = async () => {
-    setWatchlistItems([])
+    setWatchlistItems([]);
     setwatchlistDataLoading(true);
     try {
- 
       const response = await axios.get(
         `${api}/api/watchlist/by-email/?email=${userData?.email}`
       );
@@ -77,6 +76,7 @@ const Watchlist = () => {
       style={{
         backgroundImage: `url(${backgroundImage})`,
       }}
+      className="h-screen w-full"
     >
       <div className="container mx-auto p-4 max-w-4xl">
         <h1 className="text-2xl text-center font-bold mb-2 text-gray-800">
