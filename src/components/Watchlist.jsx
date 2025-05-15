@@ -52,8 +52,10 @@ const Watchlist = () => {
 
   const [watchlistDataLoading, setwatchlistDataLoading] = useState(false);
   const fetchWatchlistItems = async () => {
+    setWatchlistItems([])
     setwatchlistDataLoading(true);
     try {
+ 
       const response = await axios.get(
         `${api}/api/watchlist/by-email/?email=${userData?.email}`
       );
@@ -212,7 +214,7 @@ const Watchlist = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {watchlistItems.map((item, index) => (
+                  {watchlistItems?.reverse()?.map((item, index) => (
                     <tr key={index}>
                       <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
                         {item.watchlist_id}
