@@ -104,7 +104,7 @@ const Watchlist = () => {
               htmlFor="watchlist_id"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              ID (ALT/HIGHMARK/MEMBER)
+              MEM ID
             </label>
             <input
               type="text"
@@ -206,7 +206,7 @@ const Watchlist = () => {
                       {item.watchlist_id}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(item.serviceDate).toLocaleDateString()}
+                      {item.serviceDate}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span
