@@ -372,14 +372,18 @@ const AdminValidations = () => {
                         </td>
 
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {user?.uploaded_at?.toLocaleString()?.split("T")?.[0]}
+                          {uploaded_at
+                            ? user?.uploaded_at
+                                ?.toLocaleString()
+                                ?.split("T")?.[0]
+                            : ""}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {
-                            user?.file_updated_at
-                              ?.toLocaleString()
-                              ?.split("T")?.[0]
-                          }
+                          {file_updated_at
+                            ? user?.file_updated_at
+                                ?.toLocaleString()
+                                ?.split("T")?.[0]
+                            : ""}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           {user.file ? (
