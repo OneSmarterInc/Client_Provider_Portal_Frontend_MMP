@@ -108,7 +108,7 @@ const ProviderLogin = () => {
       <div className="flex flex-col justify-center bg-white gap-4 p-6 rounded-xl w-80 border-2">
         <div className="text-center">
           <h3 className="text-xl font-semibold text-gray-800">
-            PROVIDER LOGIN (CLIENT)
+            PROVIDER LOGIN
           </h3>
         </div>
 
