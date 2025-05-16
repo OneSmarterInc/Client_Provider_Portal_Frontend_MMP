@@ -316,6 +316,21 @@ const AdminValidations = () => {
                     >
                       Uploaded At {renderSortIndicator("uploaded_at")}
                     </th>
+                    <th
+                      onClick={() =>
+                        setSortConfig((prev) => ({
+                          key: "file_updated_at",
+                          direction:
+                            prev.key === "file_updated_at" &&
+                            prev.direction === "asc"
+                              ? "desc"
+                              : "asc",
+                        }))
+                      }
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Updated At {renderSortIndicator("file_updated_at")}
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       File
                     </th>
@@ -358,6 +373,13 @@ const AdminValidations = () => {
 
                         <td className="px-6 py-4 whitespace-nowrap">
                           {user.uploaded_at.toLocaleString().split("T")?.[0]}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {
+                            user?.file_updated_at
+                              ?.toLocaleString()
+                              .split("T")?.[0]
+                          }
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           {user.file ? (
@@ -469,7 +491,7 @@ const AdminValidations = () => {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center">
-                          {user.status.decline_remark || "-"}
+                          {user.decline_remark || "-"}
                         </td>
                       </tr>
                     ))
