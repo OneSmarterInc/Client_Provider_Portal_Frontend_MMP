@@ -192,6 +192,20 @@ const TotalClaimsFound = ({
       "Status",
     ];
 
+    const statusMap = {
+      A: "Paid",
+      D: "Deny",
+      E: "Drop",
+      H: "Hold",
+      O: "Open",
+      P: "Pend",
+      R: "RTP",
+      S: "PDO",
+      T: "Audt",
+      U: "Inpr",
+      V: "Void",
+    };
+
     const data = dataFromCLMHP?.map((claim) => [
       claim?.["CHCLM#"] || "-",
       claim._sort_date || "-",
@@ -200,10 +214,7 @@ const TotalClaimsFound = ({
       `$${claim.CHCLM$ || "-"}`,
       `$${claim.CHMM$ || "0.00"}`,
       `$${claim.BHCAMT || "0.00"}`,
-      (claim.CHHDST === "A" && "Paid") ||
-        (claim.CHHDST === "D" && "Denied") ||
-        (claim.CHHDST === "O" && "Open") ||
-        (claim.CHHDST === "R" && "Ready to release"),
+      statusMap[claim.CHHDST] || claim.CHHDST || "-",
     ]);
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
@@ -463,17 +474,37 @@ const TotalClaimsFound = ({
                         ${claim.BHCAMT || "0.00"}
                       </td>
                       <td
-                        className={`py-3 text-center
-                          ${claim.CHHDST === "A" && "text-green-500"} 
-                          ${claim.CHHDST === "D" && "text-red-500"}
-                          ${claim.CHHDST === "O" && "text-orange-500"} 
-                          ${claim.CHHDST === "R" && "text-teal-500"}`}
+                        className={`py-3 text-center ${
+                          {
+                            A: "text-green-500", // Paid
+                            D: "text-red-500", // Deny
+                            E: "text-pink-500", // Drop
+                            H: "text-yellow-600", // Hold
+                            O: "text-orange-500", // Open
+                            P: "text-blue-500", // Pend
+                            R: "text-teal-500", // RTP
+                            S: "text-purple-500", // PDO
+                            T: "text-indigo-500", // Audt
+                            U: "text-gray-500", // Inpr
+                            V: "text-rose-600", // Void
+                          }[claim.CHHDST] || "text-black"
+                        }`}
                       >
-                        {claim.CHHDST === "A" && "Paid"}
-                        {claim.CHHDST === "D" && "Denied"}
-                        {claim.CHHDST === "O" && "Open"}
-                        {claim.CHHDST === "R" && "Ready to release"}
+                        {{
+                          A: "Paid",
+                          D: "Deny",
+                          E: "Drop",
+                          H: "Hold",
+                          O: "Open",
+                          P: "Pend",
+                          R: "RTP",
+                          S: "PDO",
+                          T: "Audt",
+                          U: "Inpr",
+                          V: "Void",
+                        }[claim.CHHDST] || claim.CHHDST}
                       </td>
+
                       <td
                         onClick={() => handleRowClick(index, claim)}
                         className="py-3 cursor-pointer text-center px-2"
