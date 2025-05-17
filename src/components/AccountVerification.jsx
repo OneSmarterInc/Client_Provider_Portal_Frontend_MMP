@@ -123,11 +123,15 @@ const AccountVerification = ({ setShowMyProfile, showMyProfile }) => {
               </p>
 
               <div className="my-2 py-2 border-t-2">
-                <p>
-                  W9 Form Status:{" "}
-                  <p className={`${getStatusColor()}`}>{getStatus()}</p>
-                  <p className="ml-2 text-sm">{getStatusText()}</p>
-                </p>
+                {!loading ? (
+                  <p>
+                    W9 Form Status:{" "}
+                    <p className={`${getStatusColor()}`}>{getStatus()}</p>
+                    <p className="ml-2 text-sm">{getStatusText()}</p>
+                  </p>
+                ) : (
+                  <p>Fetching W9 Form Status...</p>
+                )}
               </div>
             </div>
             <div className="p-4 mr-16">

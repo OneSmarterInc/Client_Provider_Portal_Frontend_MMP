@@ -6,6 +6,7 @@ import axios from "axios";
 import W9FromSubmission from "./W9FromSubmission";
 import MyContext from "../ContextApi/MyContext";
 import AccountVerification from "./AccountVerification";
+import MemberScreenNavbar from "./MemberScreenNavbar";
 
 const MemberScreen = () => {
   const { api } = useContext(MyContext);
@@ -80,62 +81,14 @@ const MemberScreen = () => {
       }}
       className="min-h-screen bg bg-cover pt-8 gap-4"
     >
-      <div className="w-full bg-transparent">
-        <div className="flex items-center justify-end pl-4 pr-4 pb-0 gap-4">
-          {/* Profile Section */}
-          <div className="flex items-center gap-4">
-            <h3 className="font-inter text-sm text-black-700">
-              Welcome, {user?.email}!
-            </h3>
-            <button onClick={()=>navigate("/watchlist")}>Watchlist</button>
-            <img
-              src="/images/Header/img-11.png"
-              alt="Profile"
-              className="w-10 cursor-pointer"
-              aria-label="User profile"
-              onClick={() => setIsOpenList(!isOpenList)}
-            />
-            {/* Dropdown List */}
-            {isOpenList && (
-              <div className="absolute right-4 mt-32 w-42 bg-white border border-gray-200 shadow-lg rounded-md">
-                <div className="flex flex-col">
-                  <button
-                    className="text-[15px] px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => setShowW9Form(true)}
-                  >
-                    W9 Form
-                  </button>
-                  <button
-                    className="text-[15px] px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => setShowMyProfile(true)}
-                  >
-                    My Profile
-                  </button>
-                  <button
-                    onClick={() => handleLogout()}
-                    className="text-[15px] px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                  >
-                    Logout
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div onClick={() => handleLogout()} className="">
-              <img
-                className="w-6 cursor-pointer "
-                src="/images/Header/Vector.png"
-                alt="Logout"
-                aria-hidden="true"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Search Hint */}
-        {/* <p className="font-inter text-black-300 text-[11px] pl-10 pt-2 md:text-center">
-          Search By: Member ID / Date of Service (MM/DD/YYYY format)
-        </p> */}
+      <div className="">
+        <MemberScreenNavbar
+          isOpenList={isOpenList}
+          setIsOpenList={setIsOpenList}
+          setShowMyProfile={setShowMyProfile}
+          setShowW9Form={setShowW9Form}
+          user={user}
+        />
       </div>
 
       <div className="">

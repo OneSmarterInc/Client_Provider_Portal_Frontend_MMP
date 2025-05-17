@@ -33,32 +33,6 @@ const FirstVerificationScreen = () => {
   };
 
   const location = useLocation();
-  useEffect(() => {
-    if (!userData) {
-      toast.error("Please login first");
-      navigate("/login");
-    } else if (location.pathname === "/members") {
-      navigate("/members");
-    } else if (verificationShown) {
-      navigate("/members");
-    }
-
-    fetchUserW9Status();
-  }, [userData, verificationShown, navigate]);
-
-  if (!userData || verificationShown) {
-    return null;
-  }
-
-  const divStyle = {
-    backgroundImage: `url(${backgroundImage})`,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-  };
-
-  const emailParts = userData.email.split("@")[0].split(".");
-  const firstName = emailParts[0] || "User";
-  const lastName = emailParts.length > 1 ? emailParts[1] : "";
 
   const fetchUserW9Status = async () => {
     try {
@@ -74,6 +48,35 @@ const FirstVerificationScreen = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!userData) {
+      toast.error("Please login first");
+      navigate("/login");
+    } else if (location.pathname === "/members") {
+      navigate("/members");
+    } else if (verificationShown) {
+      navigate("/members");
+    }
+  }, [userData, verificationShown, navigate]);
+
+  useEffect(() => {
+    fetchUserW9Status();
+  }, []);
+
+  if (!userData || verificationShown) {
+    return null;
+  }
+
+  const divStyle = {
+    backgroundImage: `url(${backgroundImage})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+  };
+
+  const emailParts = userData.email.split("@")[0].split(".");
+  const firstName = emailParts[0] || "User";
+  const lastName = emailParts.length > 1 ? emailParts[1] : "";
 
   const getStatus = () => {
     switch (status) {
@@ -138,11 +141,15 @@ const FirstVerificationScreen = () => {
               {userData.phone_no || "Phone number not available"}
             </p>
             <div className="my-2 py-2 border-t-2">
-              <p>
-                W9 Form Status:{" "}
-                <p className={`${getStatusColor()}`}>{getStatus()}</p>
-                <p className="ml-2 text-sm">{getStatusText()}</p>
-              </p>
+              {!loading ? (
+                <p>
+                  W9 Form Status:{" "}
+                  <p className={`${getStatusColor()}`}>{getStatus()}</p>
+                  <p className="ml-2 text-sm">{getStatusText()}</p>
+                </p>
+              ) : (
+                <p>Fetching W9 Form Status...</p>
+              )}
             </div>
           </div>
           <div className="p-4 mr-16">

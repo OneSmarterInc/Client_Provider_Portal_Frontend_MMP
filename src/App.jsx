@@ -9,6 +9,7 @@ import "./output.css";
 import AdminValidations from "./components/AdminValidations";
 import Watchlist from "./components/Watchlist";
 import FirstVerificationScreen from "./components/FirstVerificationScreen";
+import LoginLogsTable from "./components/LoginLogsTable";
 
 const App = () => {
   return (
@@ -22,6 +23,7 @@ const App = () => {
         <Route path="/members" element={<MemberScreen />} />
         <Route path="/admin" element={<AdminValidations />} />
         <Route path="/watchlist" element={<Watchlist />} />
+        <Route path="/loginlogs" element={<LoginLogsTable />} />
       </Routes>
     </Router>
   );
