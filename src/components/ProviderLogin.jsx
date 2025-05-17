@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import backgroundImage from "../assets/image.png";
 import { Eye, EyeOff, AtSign, Loader2 } from "lucide-react";
@@ -8,15 +8,35 @@ import "react-toastify/dist/ReactToastify.css";
 import MyContext from "../ContextApi/MyContext";
 
 const ProviderLogin = () => {
-  const {api} = useContext(MyContext)
+  const { api } = useContext(MyContext);
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    ip_address: "",
+    browser_info: "",
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Fetch user's IP address
+  const fetchIpAddress = async () => {
+    try {
+      const res = await axios.get(`https://api64.ipify.org?format=json`);
+      setFormData((prev) => ({ ...prev, ip_address: res.data.ip }));
+    } catch (err) {
+      console.error("Error fetching IP address:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchIpAddress();
+    setFormData((prev) => ({
+      ...prev,
+      browser_info: navigator.userAgent,
+    }));
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -53,6 +73,8 @@ const ProviderLogin = () => {
       const response = await axios.post(`${api}/auth/login/`, {
         email: formData.email,
         password: formData.password,
+        ip_address: formData?.ip_address,
+        browser_info: formData?.browser_info,
       });
 
       if (response.data.token) {
@@ -90,7 +112,6 @@ const ProviderLogin = () => {
   };
 
   const handleForgotPassword = () => {
-    // Implement forgot password logic here
     toast.info("Forgot password functionality coming soon!");
   };
 

@@ -373,7 +373,15 @@ const TotalClaimsFound = ({
                     onClick={() => requestSort("CHFRDM-CHFRDD-CHFRDY")}
                   >
                     <div className="flex items-center justify-center">
-                      Date{renderSortIndicator("CHFRDM-CHFRDD-CHFRDY")}
+                      Service Date{renderSortIndicator("CHFRDM-CHFRDD-CHFRDY")}
+                    </div>
+                  </th>
+                  <th
+                    className="text-center py-2 cursor-pointer hover:bg-gray-50"
+                    onClick={() => requestSort("CHPRDM-CHPRDD-CHPRDY")}
+                  >
+                    <div className="flex items-center justify-center">
+                      Paid Date{renderSortIndicator("CHPRDM-CHPRDD-CHPRDY")}
                     </div>
                   </th>
                   <th
@@ -453,6 +461,13 @@ const TotalClaimsFound = ({
                         {`${String(claim.CHFRDM).padStart(2, "0")}-${String(
                           claim.CHFRDD
                         ).padStart(2, "0")}-${String(claim.CHFRDY)}` || "-"}
+                      </td>
+                      <td className="py-3 text-center">
+                        {(claim.CHPRDM &&
+                          `${String(claim.CHPRDM).padStart(2, "0")}-${String(
+                            claim.CHPRDD
+                          ).padStart(2, "0")}-${String(claim.CHPRDY)}`) ||
+                          "-"}
                       </td>
                       <td className="py-3 text-center">
                         {claim.CHCLTP || "-"}
@@ -584,7 +599,7 @@ const TotalClaimsFound = ({
                                 <strong>Processed Date:</strong>{" "}
                                 {selectedRowData?.CHPRDM
                                   ? `${selectedRowData?.CHPRDM}-${selectedRowData?.CHPRDD}-${selectedRowData?.CHPRDY}`
-                                  : `${selectedRowData?.["Processed Date"]}`}
+                                  : `-`}
                               </p>
                               <p>
                                 <strong>Assign:</strong>{" "}

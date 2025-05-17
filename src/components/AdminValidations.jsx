@@ -223,6 +223,12 @@ const AdminValidations = () => {
 
             {/* Right Section: User Info */}
             <div className="flex items-center gap-3 mt-3 md:mt-0">
+              <div
+                className="w-28 text-sm cursor-pointer bg-cyan-600 text-gray-50 p-1  text-center rounded-md"
+                onClick={() => navigate("/loginlogs")}
+              >
+                View Logs
+              </div>
               <h3 className="font-inter text-sm text-black">
                 Welcome, {user?.email}!
               </h3>
@@ -234,7 +240,7 @@ const AdminValidations = () => {
               />
               <div onClick={() => handleLogout()}>
                 <img
-                  className="w-5 sm:w-6 cursor-pointer"
+                  className="w-6 cursor-pointer"
                   src="/images/Header/Vector.png"
                   alt="Logout"
                   aria-hidden="true"
