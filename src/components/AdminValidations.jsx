@@ -260,9 +260,9 @@ const AdminValidations = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       ID
-                    </th>
+                    </th> */}
                     <th
                       onClick={() =>
                         setSortConfig((prev) => ({
@@ -359,152 +359,155 @@ const AdminValidations = () => {
                       </td>
                     </tr>
                   ) : (
-                    sortedData?.reverse().map((user) => (
-                      <tr
-                        key={user.user_id}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    sortedData
+                      ?.filter((item) => item?.uploaded_at)
+                      ?.reverse()
+                      .map((user) => (
+                        <tr
+                          key={user.user_id}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {user.user_id}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {user.user_email}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {user.user_provider_no || "-"}{" "}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                          {statusLabel(user.status)}
-                        </td>
+                        </td> */}
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {user.user_email}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {user.user_provider_no || "-"}{" "}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            {statusLabel(user.status)}
+                          </td>
 
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {user?.uploaded_at
-                            ? user?.uploaded_at
-                                ?.toLocaleString()
-                                ?.split("T")?.[0]
-                            : ""}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {user?.file_updated_at
-                            ? user?.file_updated_at
-                                ?.toLocaleString()
-                                ?.split("T")?.[0]
-                            : ""}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {user.file ? (
-                            <button
-                              onClick={() => openPdf(user.file)}
-                              className="text-blue-600 hover:text-blue-800 hover:underline flex items-center"
-                            >
-                              <svg
-                                className="w-4 h-4 mr-1"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                xmlns="http://www.w3.org/2000/svg"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                />
-                              </svg>
-                              View PDF
-                            </button>
-                          ) : (
-                            <span className="text-gray-400">No File</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                          {user.status === "in_progress" ? (
-                            <div className="flex justify-center space-x-2">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {user?.uploaded_at
+                              ? user?.uploaded_at
+                                  ?.toLocaleString()
+                                  ?.split("T")?.[0]
+                              : ""}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {user?.file_updated_at
+                              ? user?.file_updated_at
+                                  ?.toLocaleString()
+                                  ?.split("T")?.[0]
+                              : ""}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            {user.file ? (
                               <button
-                                onClick={() =>
-                                  handleStatusChange(user.user_id, "approved")
-                                }
-                                disabled={
-                                  actionLoading.approve === user.user_id
-                                }
-                                className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-75 disabled:cursor-not-allowed ${
-                                  actionLoading.decline === user.user_id
-                                    ? "hidden"
-                                    : ""
-                                }`}
+                                onClick={() => openPdf(user.file)}
+                                className="text-blue-600 hover:text-blue-800 hover:underline flex items-center"
                               >
-                                {actionLoading.approve === user.user_id ? (
-                                  <>
-                                    <div className=" flex animate-spin rounded-full h-5 w-5 border-t-4 border-green-200 border-solid"></div>
-                                    Approving..
-                                  </>
-                                ) : (
-                                  "Approve"
-                                )}
+                                <svg
+                                  className="w-4 h-4 mr-1"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                  />
+                                </svg>
+                                View PDF
                               </button>
-                              <button
-                                onClick={() =>
-                                  handleAddDeclineRemark(
-                                    user.user_id,
-                                    "declined"
-                                  )
-                                }
-                                disabled={
-                                  actionLoading.decline === user.user_id
-                                }
-                                className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-75 disabled:cursor-not-allowed ${
-                                  actionLoading.approve === user.user_id
-                                    ? "hidden"
-                                    : ""
-                                }`}
-                              >
-                                {actionLoading.decline === user.user_id ? (
-                                  <>
-                                    <div className=" flex animate-spin rounded-full h-5 w-5 border-t-4 border-red-200 border-solid"></div>
-                                    Declining..
-                                  </>
+                            ) : (
+                              <span className="text-gray-400">No File</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                            {user.status === "in_progress" ? (
+                              <div className="flex justify-center space-x-2">
+                                <button
+                                  onClick={() =>
+                                    handleStatusChange(user.user_id, "approved")
+                                  }
+                                  disabled={
+                                    actionLoading.approve === user.user_id
+                                  }
+                                  className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-75 disabled:cursor-not-allowed ${
+                                    actionLoading.decline === user.user_id
+                                      ? "hidden"
+                                      : ""
+                                  }`}
+                                >
+                                  {actionLoading.approve === user.user_id ? (
+                                    <>
+                                      <div className=" flex animate-spin rounded-full h-5 w-5 border-t-4 border-green-200 border-solid"></div>
+                                      Approving..
+                                    </>
+                                  ) : (
+                                    "Approve"
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleAddDeclineRemark(
+                                      user.user_id,
+                                      "declined"
+                                    )
+                                  }
+                                  disabled={
+                                    actionLoading.decline === user.user_id
+                                  }
+                                  className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-75 disabled:cursor-not-allowed ${
+                                    actionLoading.approve === user.user_id
+                                      ? "hidden"
+                                      : ""
+                                  }`}
+                                >
+                                  {actionLoading.decline === user.user_id ? (
+                                    <>
+                                      <div className=" flex animate-spin rounded-full h-5 w-5 border-t-4 border-red-200 border-solid"></div>
+                                      Declining..
+                                    </>
+                                  ) : (
+                                    "Decline"
+                                  )}
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-gray-500 italic">
+                                {user.status === "declined" &&
+                                user.declined_at ? (
+                                  <span className="text-gray-500 italic">
+                                    Declined on {user.declined_at.split("T")[0]}{" "}
+                                    at{" "}
+                                    {
+                                      user.declined_at
+                                        .split("T")[1]
+                                        ?.replace("Z", "")
+                                        .split(".")[0]
+                                    }
+                                  </span>
+                                ) : user.status === "approved" &&
+                                  user.approved_at ? (
+                                  <span className="text-gray-500 italic">
+                                    Approved on {user.approved_at.split("T")[0]}{" "}
+                                    at{" "}
+                                    {
+                                      user.approved_at
+                                        .split("T")[1]
+                                        ?.replace("Z", "")
+                                        .split(".")[0]
+                                    }
+                                  </span>
                                 ) : (
-                                  "Decline"
+                                  "No Action"
                                 )}
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-gray-500 italic">
-                              {user.status === "declined" &&
-                              user.declined_at ? (
-                                <span className="text-gray-500 italic">
-                                  Declined on {user.declined_at.split("T")[0]}{" "}
-                                  at{" "}
-                                  {
-                                    user.declined_at
-                                      .split("T")[1]
-                                      ?.replace("Z", "")
-                                      .split(".")[0]
-                                  }
-                                </span>
-                              ) : user.status === "approved" &&
-                                user.approved_at ? (
-                                <span className="text-gray-500 italic">
-                                  Approved on {user.approved_at.split("T")[0]}{" "}
-                                  at{" "}
-                                  {
-                                    user.approved_at
-                                      .split("T")[1]
-                                      ?.replace("Z", "")
-                                      .split(".")[0]
-                                  }
-                                </span>
-                              ) : (
-                                "No Action"
-                              )}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                          {user.decline_remark || "-"}
-                        </td>
-                      </tr>
-                    ))
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            {user.decline_remark || "-"}
+                          </td>
+                        </tr>
+                      ))
                   )}
                 </tbody>
               </table>
