@@ -2,34 +2,14 @@ import React, { useContext, useEffect, useState } from "react";
 import axios from "axios";
 import MyContext from "../ContextApi/MyContext";
 
-const TotalClaimsTable = ({ claim_no, isOpen, setIsTotalClaimModalOpen, schema }) => {
+const TotalClaimsTable = ({
+  claim_no,
+  isOpen,
+  setIsTotalClaimModalOpen,
+  schema,
+}) => {
   const { api } = useContext(MyContext);
-  const [tableData, setTableData] = useState([
-    {
-      CDCLM: "000009010",
-      CDBNCD: "85C",
-      CDAPTC: "M",
-      "CDCPT#": "45378",
-      CDCPTM: "33",
-      CDCHG$: 1895.0,
-      CDNPC$: 0.0,
-      CDPAY$: 881.78,
-      "FROM DATE": "1/16/2025",
-      "TO DATE": "1/16/2025",
-    },
-    {
-      CDCLM: "000009010",
-      CDBNCD: "85C",
-      CDAPTC: "M",
-      "CDCPT#": "45378",
-      CDCPTM: "33",
-      CDCHG$: 1895.0,
-      CDNPC$: 0.0,
-      CDPAY$: 881.78,
-      "FROM DATE": "1/16/2025",
-      "TO DATE": "1/16/2025",
-    },
-  ]);
+  const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -137,8 +117,13 @@ const TotalClaimsTable = ({ claim_no, isOpen, setIsTotalClaimModalOpen, schema }
                           <td className=" px-4 py-2">{row?.CDCPTM || "-"}</td>
                           <td className=" px-4 py-2">{row?.CDCHG$ || "-"}</td>
                           <td className=" px-4 py-2">{row?.CDPAY$ || "-"}</td>
-                          <td className=" px-4 py-2">
-                            {row?.CDCHG$ - row?.CDPAY$}
+                          <td className="px-4 py-2">
+                            {Number(
+                              (
+                                parseFloat(row?.CDCHG$) -
+                                parseFloat(row?.CDPAY$)
+                              ).toFixed(2)
+                            )}
                           </td>
                         </tr>
                       ))}

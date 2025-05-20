@@ -106,7 +106,7 @@ const LoginLogsTable = () => {
                 <th className="py-3 px-4 text-left">IP Address</th>
                 <th className="py-3 px-4 text-left">Login Date</th>
                 <th className="py-3 px-4 text-left">Login Time</th>
-                <th className="py-3 px-4 text-left">Browser Info</th>
+                {/* <th className="py-3 px-4 text-left">Browser Info</th> */}
               </tr>
             </thead>
             <tbody>
@@ -125,9 +125,9 @@ const LoginLogsTable = () => {
                   <td className="py-3 px-4 text-sm">
                     {log.login_time.split(".")[0]}
                   </td>
-                  <td className="py-3 px-4 text-sm truncate max-w-md">
+                  {/* <td className="py-3 px-4 text-sm truncate max-w-md">
                     {log.user_browser}
-                  </td>
+                  </td> */}
                 </tr>
               ))}
             </tbody>
