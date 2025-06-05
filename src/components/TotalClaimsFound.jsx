@@ -6,6 +6,7 @@ import TotalClaimsTable from "./TotalClaimsTable";
 import MyContext from "../ContextApi/MyContext";
 import * as XLSX from "xlsx";
 import LoadingMessage from "./LoadingMessage";
+import ViewEOBDownload from "./ViewEOBDownload";
 const TotalClaimsFound = ({
   activeStatusFilter,
   activeMonthFilter,
@@ -13,7 +14,7 @@ const TotalClaimsFound = ({
   setActiveStatusFilter,
   setActiveMonthName,
 }) => {
-  const { api } = useContext(MyContext);
+  const { api, isEOBOpen, setIsEOBOpen } = useContext(MyContext);
   const [dataFromCLMHP, setDataFromCLMHP] = useState();
   const user = JSON.parse(localStorage.getItem("user"));
   const provider_no = user?.provider_no;
@@ -223,6 +224,12 @@ const TotalClaimsFound = ({
     XLSX.writeFile(wb, `Downloaded_report.xlsx`);
   };
 
+  const [EobClaimNO, setEobClaimNO] = useState(false);
+  const handleEOBClick = (claim_no) => {
+    setEobClaimNO(claim_no);
+    setIsEOBOpen(!isEOBOpen);
+  };
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(8);
@@ -352,14 +359,12 @@ const TotalClaimsFound = ({
             <table className="w-full text-sm mt-2">
               <thead className="">
                 <tr className="border-b text-xs">
-                  {/* <th
+                  <th
                     className="text-center py-2 cursor-pointer hover:bg-gray-50"
-                    onClick={() => requestSort("EOB")}
+                    // onClick={() => requestSort("EOB")}
                   >
-                    <div className="flex items-center justify-center">
-                      EOB{renderSortIndicator("EOB")}
-                    </div>
-                  </th> */}
+                    <div className="flex items-center justify-center">EOB</div>
+                  </th>
                   <th
                     className="text-center py-2 cursor-pointer hover:bg-gray-50"
                     onClick={() => requestSort("CHCLM#")}
@@ -451,9 +456,12 @@ const TotalClaimsFound = ({
                 {currentItems?.map((claim, index) => (
                   <React.Fragment key={index}>
                     <tr className="border-b text-xs hover:bg-gray-50 ">
-                      {/* <td className="py-3 cursor-pointer text-center text-[#0486A5] hover:underline underline-offset-4 hover:text-sky-400 font-medium">
+                      <td
+                        onClick={() => handleEOBClick(claim?.["CHCLM#"])}
+                        className="py-3 cursor-pointer text-center text-[#0486A5] hover:underline underline-offset-4 hover:text-sky-400 font-medium"
+                      >
                         EOB
-                      </td> */}
+                      </td>
                       <td className="py-3 text-center">
                         {claim?.["CHCLM#"] || "-"}
                       </td>
@@ -669,6 +677,14 @@ const TotalClaimsFound = ({
             schema={selectedRowData?.["schema"]}
           />
         </div>
+      )}
+
+      {isEOBOpen && (
+        <ViewEOBDownload
+          isOpen={isEOBOpen}
+          onClose={() => setIsEOBOpen(false)}
+          claim_no={EobClaimNO}
+        />
       )}
     </div>
   );

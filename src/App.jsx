@@ -1,5 +1,5 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React, { useContext } from "react";
+import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import Register from "./components/Register";
 import ProviderLogin from "./components/ProviderLogin";
 import AccountVerification from "./components/AccountVerification";
@@ -10,8 +10,12 @@ import AdminValidations from "./components/AdminValidations";
 import Watchlist from "./components/Watchlist";
 import FirstVerificationScreen from "./components/FirstVerificationScreen";
 import LoginLogsTable from "./components/LoginLogsTable";
+import MyContext from "./ContextApi/MyContext";
+import ViewEOBDownload from "./components/ViewEOBDownload";
 
 const App = () => {
+  const { setIsEOBOpen } = useContext(MyContext);
+  const EOB_Claim_No = localStorage.getItem("EOB_Claim_No");
   return (
     <Router>
       <ToastContainer />
@@ -24,6 +28,17 @@ const App = () => {
         <Route path="/admin" element={<AdminValidations />} />
         <Route path="/watchlist" element={<Watchlist />} />
         <Route path="/loginlogs" element={<LoginLogsTable />} />
+        {/* Modals to Full Screens */}
+        <Route
+          path="/eob-details/:claim_no_from_params"
+          element={
+            <ViewEOBDownload
+              isOpen={true}
+              onClose={() => setIsEOBOpen(false)}
+              claim_no={EOB_Claim_No}
+            />
+          }
+        />
       </Routes>
     </Router>
   );

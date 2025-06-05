@@ -1,3 +1,4 @@
+import { useState } from "react";
 import MyContext from "./MyContext";
 
 const MyProvider = ({ children }) => {
@@ -5,10 +6,13 @@ const MyProvider = ({ children }) => {
 
   const api = "http://170.249.90.216:3181";
 
+  const [isEOBOpen, setIsEOBOpen] = useState();
   return (
     <MyContext.Provider
       value={{
-        api
+        api,
+        isEOBOpen,
+        setIsEOBOpen,
       }}
     >
       {children}
