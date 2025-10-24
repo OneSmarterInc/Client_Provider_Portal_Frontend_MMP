@@ -5,6 +5,7 @@ import backgroundImage from "../assets/image.png";
 import { useNavigate } from "react-router-dom";
 import MyContext from "../ContextApi/MyContext";
 import DeclineRemarkModal from "./DeclineRemarkModal";
+import AdminPasswordResetModal from "./AdminPasswordResetModal";
 
 const AdminValidations = () => {
   const { api } = useContext(MyContext);
@@ -186,6 +187,13 @@ const AdminValidations = () => {
     localStorage.clear();
     navigate("/");
   };
+  const [IsPasswordResetModalOpen, setIsPasswordResetModalOpen] =
+    useState(false);
+  const [userEmail, setuserEmail] = useState("");
+  const handlePasswordResetModalOpen = (email) => {
+    setuserEmail(email);
+    setIsPasswordResetModalOpen(true);
+  };
 
   return (
     <div
@@ -345,6 +353,9 @@ const AdminValidations = () => {
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Decline Remark
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Reset Password
                     </th>
                   </tr>
                 </thead>
@@ -506,6 +517,17 @@ const AdminValidations = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-center">
                             {user.decline_remark || "-"}
                           </td>
+                          <td className="px-6 py-4 text-sm">
+                            <button
+                              onClick={() =>
+                                handlePasswordResetModalOpen(user.user_email)
+                              }
+                              className="text-red-700 text-xs hover:text-gray-50 font-medium border rounded-full border-red-800 p-1 px-3 hover:bg-cyan-600 w-32"
+                            >
+                              <i className="fa-solid fa-lock"></i> Reset
+                              Password
+                            </button>
+                          </td>
                         </tr>
                       ))
                   )}
@@ -524,6 +546,33 @@ const AdminValidations = () => {
           }
           userId={declineUserId}
         />
+      </div>
+      <div className="">
+        {" "}
+        {IsPasswordResetModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-2xl shadow-lg w-11/12 md:w-3/4 lg:w-1/2 max-h-[90vh]  relative">
+              <button
+                onClick={() => setIsPasswordResetModalOpen(false)}
+                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+
+              <div className="px-6 py-2 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Password Reset for{" "}
+                  <span className=" text-cyan-700">{userEmail}</span>
+                </h2>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-3 ">
+                {<AdminPasswordResetModal provider_email={userEmail} />}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -212,7 +212,7 @@ const ProviderLogin = () => {
           </button>
           <p
             className="text-sm text-gray-700 cursor-pointer hover:text-[#0486A5] hover:underline"
-            onClick={handleForgotPassword}
+            onClick={() => navigate("/forgot-password")}
           >
             Forgot Password?
           </p>

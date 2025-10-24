@@ -12,6 +12,7 @@ import FirstVerificationScreen from "./components/FirstVerificationScreen";
 import LoginLogsTable from "./components/LoginLogsTable";
 import MyContext from "./ContextApi/MyContext";
 import ViewEOBDownload from "./components/ViewEOBDownload";
+import ForgotPasswordFlow from "./components/ForgotPasswordFlow";
 
 const App = () => {
   const { setIsEOBOpen } = useContext(MyContext);
@@ -39,6 +40,8 @@ const App = () => {
             />
           }
         />
+         <Route path="/forgot-password" element={<ForgotPasswordFlow />} />
+
       </Routes>
     </Router>
   );
