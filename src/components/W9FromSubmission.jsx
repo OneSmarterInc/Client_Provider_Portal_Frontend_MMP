@@ -177,7 +177,7 @@ const W9FromSubmission = ({ showW9Form, setShowW9Form }) => {
               <FiLoader className="animate-spin text-blue-600 mb-3" size={40} />
               <p className="text-gray-600">Checking W9 status...</p>
             </div>
-          ) : db2W9Status !== "W9_form_uploaded" ? (
+          ) : db2W9Status === "W9_form_uploaded" ? (
             <div className="h-60 flex items-center justify-center">
               <p className="text-gray-700 text-center">
                 You have already uploaded the W9 form.
