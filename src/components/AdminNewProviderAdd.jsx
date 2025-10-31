@@ -130,7 +130,7 @@ export default function AdminNewProviderAdd() {
         </h1>
         <button
           onClick={() => navigate("/admin")}
-          className="p-1 bg-cyan-600 text-white px-2 rounded-md hover:bg-cyan-700"
+          className="p-1 text-sm bg-cyan-600 text-white px-2 rounded-md hover:bg-cyan-700"
         >
           Back to admin
         </button>
@@ -143,17 +143,17 @@ export default function AdminNewProviderAdd() {
           No new providers request found for registration.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl shadow-xl border border-gray-300 bg-white">
+        <div className="overflow-x-auto shadow-sm border border-gray-300 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="bg-[#0486A5] text-white text-xs">
               <tr>
                 <th className="p-3">Provider No. #</th>
                 <th className="p-3">Name & Email</th>
                 <th className="p-3">Full Address</th>
-                <th className="p-3">Title</th>
                 <th className="p-3">Status</th>
                 <th className="p-3 text-center">W9 Form</th>
                 <th className="p-3 text-center">Actions</th>
+                <th className="p-3 text-center">Decline Remark</th>
               </tr>
             </thead>
 
@@ -177,10 +177,18 @@ export default function AdminNewProviderAdd() {
                   </td>
 
                   <td className="p-3">
-                    <p className="text-sm">{getFullAddress(item)}</p>
+                    <p className="text-sm">
+                      {" "}
+                      <strong className="">Address:</strong>{" "}
+                      {getFullAddress(item)}
+                    </p>
+                    <p className="text-sm">
+                      <strong>Title:</strong> {item?.PRTITL || "-"}
+                    </p>
+                    <p className="text-sm">
+                      <strong>Description:</strong> {item?.description || "-"}
+                    </p>
                   </td>
-
-                  <td className="p-3">{item.PRTITL}</td>
 
                   <td className="p-3">
                     <span
@@ -211,14 +219,14 @@ export default function AdminNewProviderAdd() {
                       <div className="flex gap-2 justify-center">
                         <button
                           onClick={() => openApproveModal(item.id)}
-                          className="px-3 py-1 border border-[#0486A5] text-[#0486A5] rounded-lg hover:bg-[#0486A5] hover:text-white transition"
+                          className="px-3 text-xs py-1 border border-[#0486A5] text-[#0486A5] rounded-lg hover:bg-[#0486A5] hover:text-white transition"
                         >
                           Approve
                         </button>
 
                         <button
                           onClick={() => openDeclineModal(item.id)}
-                          className="px-3 py-1 border border-red-500 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition"
+                          className="px-3 text-xs py-1 border border-red-500 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition"
                         >
                           Decline
                         </button>
@@ -226,6 +234,9 @@ export default function AdminNewProviderAdd() {
                     ) : (
                       <p>-</p>
                     )}
+                  </td>
+                  <td className="p-3 text-center w-40">
+                    {item?.decline_remark || "-"}
                   </td>
                 </tr>
               ))}

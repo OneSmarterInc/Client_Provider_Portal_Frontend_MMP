@@ -17,6 +17,7 @@ const NewProviderRegister = () => {
     PRZIP2: "",
     PRTITL: "",
     provider_name: "",
+    description: "",
     provider_email: "",
   });
 
@@ -45,6 +46,7 @@ const NewProviderRegister = () => {
     PRZIP4: "ZIP 2",
     PRZIP2: "ZIP 3",
     PRTITL: "Title",
+    description: "Description Remark",
   };
 
   const handleChange = (e) => {
@@ -57,7 +59,7 @@ const NewProviderRegister = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMessage(""); 
+    setErrorMessage("");
 
     try {
       const sendData = new FormData();
@@ -258,6 +260,19 @@ const NewProviderRegister = () => {
                   value={formData.PRTITL}
                   onChange={handleChange}
                   required
+                  className="w-full border border-gray-300 rounded-lg px-4 py-1 focus:border-[#0486A5]"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1 font-medium text-[#0486A5]">
+                  Description
+                </label>
+                <input
+                  type="textarea"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
                   className="w-full border border-gray-300 rounded-lg px-4 py-1 focus:border-[#0486A5]"
                 />
               </div>
