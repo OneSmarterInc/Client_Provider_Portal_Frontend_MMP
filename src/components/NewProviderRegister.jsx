@@ -22,12 +22,30 @@ const NewProviderRegister = () => {
 
   const [w9Form, setW9Form] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   //  New screen states
   const [step, setStep] = useState("form"); // form → preview → success
 
   const { api } = useContext(MyContext);
   const navigate = useNavigate();
+
+  // Field label mapping
+  const fieldLabels = {
+    provider_name: "Provider Name",
+    PRNUM: "Provider Number",
+    provider_email: "Provider Email",
+    PRADR1: "Address 1",
+    PRADR2: "Address 2",
+    PRADR3: "Address 3",
+    PRADR4: "Address 4",
+    PRCITY: "City",
+    PRST: "State",
+    PRZIP5: "ZIP 1",
+    PRZIP4: "ZIP 2",
+    PRZIP2: "ZIP 3",
+    PRTITL: "Title",
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -39,6 +57,7 @@ const NewProviderRegister = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage(""); 
 
     try {
       const sendData = new FormData();
@@ -64,9 +83,21 @@ const NewProviderRegister = () => {
           " Registration submitted successfully. Admin will review your request and send confirmation to your email."
         );
         setStep("success");
+      } else {
+        // Handle error response
+        if (result.error) {
+          setErrorMessage(result.error);
+        } else {
+          setErrorMessage(
+            "An error occurred during submission. Please try again."
+          );
+        }
       }
     } catch (error) {
       console.log(error);
+      setErrorMessage(
+        "Network error. Please check your connection and try again."
+      );
     }
   };
 
@@ -110,6 +141,7 @@ const NewProviderRegister = () => {
                   name="provider_name"
                   value={formData.provider_name}
                   onChange={handleChange}
+                  required
                   className="w-full border border-gray-300 rounded-lg px-4 py-1 focus:border-[#0486A5]"
                 />
               </div>
@@ -124,6 +156,7 @@ const NewProviderRegister = () => {
                   name="PRNUM"
                   value={formData.PRNUM}
                   onChange={handleChange}
+                  required
                   className="w-full border border-gray-300 rounded-lg px-4 py-1 focus:border-[#0486A5]"
                 />
               </div>
@@ -138,6 +171,7 @@ const NewProviderRegister = () => {
                   name="provider_email"
                   value={formData.provider_email}
                   onChange={handleChange}
+                  required
                   className="w-full border border-gray-300 rounded-lg px-4 py-1 focus:border-[#0486A5]"
                 />
               </div>
@@ -155,6 +189,7 @@ const NewProviderRegister = () => {
                         name={field}
                         value={formData[field]}
                         onChange={handleChange}
+                        required={index + 1 === 1}
                         className="w-full border border-gray-300 rounded-lg px-4 py-1 focus:border-[#0486A5]"
                       />
                     </div>
@@ -166,25 +201,27 @@ const NewProviderRegister = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block mb-1 font-medium text-[#0486A5]">
-                    City
+                    City*
                   </label>
                   <input
                     type="text"
                     name="PRCITY"
                     value={formData.PRCITY}
                     onChange={handleChange}
+                    required
                     className="w-full border border-gray-300 rounded-lg px-4 py-1 focus:border-[#0486A5]"
                   />
                 </div>
 
                 <div>
                   <label className="block mb-1 font-medium text-[#0486A5]">
-                    State
+                    State*
                   </label>
                   <input
                     type="text"
                     name="PRST"
                     value={formData.PRST}
+                    required
                     onChange={handleChange}
                     className="w-full border border-gray-300 rounded-lg px-4 py-1 focus:border-[#0486A5]"
                   />
@@ -202,6 +239,7 @@ const NewProviderRegister = () => {
                       type="text"
                       name={field}
                       value={formData[field]}
+                      required={index + 1 === 1}
                       onChange={handleChange}
                       className="w-full border border-gray-300 rounded-lg px-4 py-1 focus:border-[#0486A5]"
                     />
@@ -212,13 +250,14 @@ const NewProviderRegister = () => {
               {/* Title */}
               <div>
                 <label className="block mb-1 font-medium text-[#0486A5]">
-                  PRTITL
+                  Title
                 </label>
                 <input
                   type="text"
                   name="PRTITL"
                   value={formData.PRTITL}
                   onChange={handleChange}
+                  required
                   className="w-full border border-gray-300 rounded-lg px-4 py-1 focus:border-[#0486A5]"
                 />
               </div>
@@ -226,7 +265,7 @@ const NewProviderRegister = () => {
               {/* W9 File */}
               <div>
                 <label className="block mb-1 font-medium text-[#0486A5]">
-                  Upload W9 Form (PDF)
+                  Upload W9 Form (PDF)*
                 </label>
                 <input
                   type="file"
@@ -256,14 +295,29 @@ const NewProviderRegister = () => {
               <div className="bg-white p-4 rounded-lg border border-gray-300 space-y-2">
                 {Object.entries(formData).map(([key, value]) => (
                   <p key={key} className="text-sm">
-                    <strong>{key}:</strong> {value || "―"}
+                    <strong>{fieldLabels[key] || key}:</strong> {value || "-"}
                   </p>
                 ))}
+                {w9Form && (
+                  <p className="text-sm">
+                    <strong>W9 Form:</strong> {w9Form.name}
+                  </p>
+                )}
               </div>
+
+              {/* Error Message */}
+              {errorMessage && (
+                <div className="p-4 text-red-700 bg-red-100 border border-red-300 rounded-lg">
+                  {errorMessage}
+                </div>
+              )}
 
               <div className="flex gap-4 mt-4">
                 <button
-                  onClick={() => setStep("form")}
+                  onClick={() => {
+                    setStep("form");
+                    setErrorMessage("");
+                  }}
                   className="w-1/2 border-2 border-gray-400 text-gray-600 py-2 rounded-lg hover:bg-gray-200"
                 >
                   Back to Edit

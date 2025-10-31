@@ -385,8 +385,7 @@ const Register = () => {
             <h2 className="text-xl font-semibold mb-3">Provider Not Found</h2>
 
             <p className="text-gray-600 mb-6">
-              The provider number you entered is not in our record. Do you want
-              to register as a provider?
+              Provider number not found. Do you want to register as a provider?
             </p>
 
             <div className="flex justify-end space-x-4">
@@ -404,7 +403,7 @@ const Register = () => {
                 }}
                 className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-2 rounded-lg"
               >
-                Yes, Register
+                Yes
               </button>
             </div>
           </div>
