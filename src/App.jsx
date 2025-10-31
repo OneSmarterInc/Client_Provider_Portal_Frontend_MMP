@@ -13,6 +13,8 @@ import LoginLogsTable from "./components/LoginLogsTable";
 import MyContext from "./ContextApi/MyContext";
 import ViewEOBDownload from "./components/ViewEOBDownload";
 import ForgotPasswordFlow from "./components/ForgotPasswordFlow";
+import NewProviderRegister from "./components/NewProviderRegister";
+import AdminNewProviderAdd from "./components/AdminNewProviderAdd";
 
 const App = () => {
   const { setIsEOBOpen } = useContext(MyContext);
@@ -40,8 +42,15 @@ const App = () => {
             />
           }
         />
-         <Route path="/forgot-password" element={<ForgotPasswordFlow />} />
-
+        <Route path="/forgot-password" element={<ForgotPasswordFlow />} />
+        <Route
+          path="/new-provider-register"
+          element={<NewProviderRegister />}
+        />
+        <Route
+          path="/admin-new-prov-request"
+          element={<AdminNewProviderAdd />}
+        />
       </Routes>
     </Router>
   );

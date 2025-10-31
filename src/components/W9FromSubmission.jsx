@@ -20,8 +20,31 @@ const W9FromSubmission = ({ showW9Form, setShowW9Form }) => {
 
   const user = JSON.parse(localStorage.getItem("user"));
 
+  const [db2W9Status, setDb2W9Status] = useState("");
+  const [isCheckingDB2Status, setIsCheckingDB2Status] = useState(true);
+
+  const fetchUserW9StatusFromDB2 = async () => {
+    try {
+      setIsCheckingDB2Status(true);
+      setError(null);
+      const response = await axios.get(
+        `${api}/w9/status-db2/?provider_no=${user?.provider_no}`
+      );
+      if (response.data) {
+        setDb2W9Status(response.data.status);
+      }
+    } catch (error) {
+      setError("Failed to fetch W9 status. Please try again.");
+    } finally {
+      setIsCheckingDB2Status(false);
+    }
+  };
+
   useEffect(() => {
-    if (showW9Form) fetchUserW9Status();
+    if (showW9Form) {
+      fetchUserW9StatusFromDB2();
+      fetchUserW9Status();
+    }
   }, [showW9Form]);
 
   const fetchUserW9Status = async () => {
@@ -149,175 +172,200 @@ const W9FromSubmission = ({ showW9Form, setShowW9Form }) => {
             </button>
           </div>
 
-          <div className={`text-center m-6 ${getStatusColor()} font-medium`}>
-            {getStatusText()}
-          </div>
-
-          <div className="relative w-full my-8">
-            <div className="w-full h-2 bg-gray-200 rounded-full" />
-            <div
-              className="absolute top-0 left-0 h-2 rounded-full transition-all duration-500 ease-out"
-              style={{ width: progressWidth, backgroundColor: progressColor }}
-            />
-            <div className="absolute top-4 w-full flex justify-between transform -translate-y-1/2">
-              {/* Step 1: Upload */}
-              <div
-                className={`flex flex-col items-center ${
-                  status !== "not_submitted" ? "text-blue-600" : "text-gray-400"
-                }`}
-              >
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                    status !== "not_submitted"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-200"
-                  }`}
-                >
-                  {status !== "not_submitted" ? (
-                    <FiCheckCircle size={16} />
-                  ) : (
-                    <span className="text-xs">1</span>
-                  )}
-                </div>
-                <span className="mt-2 text-xs font-medium">Upload</span>
-              </div>
-
-              {/* Step 2: Review */}
-              <div
-                className={`flex flex-col items-center ${
-                  ["in_progress", "approved", "declined"].includes(status)
-                    ? "text-yellow-600"
-                    : "text-gray-400"
-                }`}
-              >
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                    ["in_progress", "approved", "declined"].includes(status)
-                      ? "bg-yellow-500 text-white"
-                      : "bg-gray-200"
-                  }`}
-                >
-                  {status === "in_progress" ? (
-                    <FiLoader className="animate-spin" size={16} />
-                  ) : (
-                    <span className="text-xs">2</span>
-                  )}
-                </div>
-                <span className="mt-2 text-xs font-medium">Review</span>
-              </div>
-
-              {/* Step 3: Final */}
-              <div
-                className={`flex flex-col items-center ${
-                  status === "approved"
-                    ? "text-green-600"
-                    : status === "declined"
-                    ? "text-red-600"
-                    : "text-gray-400"
-                }`}
-              >
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                    status === "approved"
-                      ? "bg-green-500 text-white"
-                      : status === "declined"
-                      ? "bg-red-500 text-white"
-                      : "bg-gray-200"
-                  }`}
-                >
-                  {status === "approved" || status === "declined" ? (
-                    <FiCheckCircle size={16} />
-                  ) : (
-                    <span className="text-xs">3</span>
-                  )}
-                </div>
-                <span className="mt-2 text-xs font-medium">
-                  {status === "declined" ? "Declined" : "Approved"}
-                </span>
-              </div>
+          {isCheckingDB2Status ? (
+            <div className="h-60 flex flex-col items-center justify-center">
+              <FiLoader className="animate-spin text-blue-600 mb-3" size={40} />
+              <p className="text-gray-600">Checking W9 status...</p>
             </div>
-          </div>
+          ) : db2W9Status !== "W9_form_uploaded" ? (
+            <div className="h-60 flex items-center justify-center">
+              <p className="text-gray-700 text-center">
+                You have already uploaded the W9 form.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <div
+                className={`text-center m-6 ${getStatusColor()} font-medium`}
+              >
+                {getStatusText()}
+              </div>
 
-          {/* Upload area */}
-          {status !== "approved" && (
-            <div className="flex flex-col gap-4">
-              <label className="w-full">
+              <div className="relative w-full my-8">
+                <div className="w-full h-2 bg-gray-200 rounded-full" />
                 <div
-                  className={`px-6 py-3 rounded-lg border-2 mt-4 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${
-                    file
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-300 hover:border-blue-400"
-                  }`}
-                >
-                  <FiUpload size={24} className="text-blue-500 mb-2" />
-                  <span className="text-sm font-medium text-gray-700">
-                    {file ? file.name : "Click to upload W9 form"}
-                  </span>
-                  <span className="text-xs text-gray-500 mt-1">
-                    PDF format only (max 5MB)
-                  </span>
-                </div>
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                  accept=".pdf,application/pdf"
+                  className="absolute top-0 left-0 h-2 rounded-full transition-all duration-500 ease-out"
+                  style={{
+                    width: progressWidth,
+                    backgroundColor: progressColor,
+                  }}
                 />
-              </label>
+                <div className="absolute top-4 w-full flex justify-between transform -translate-y-1/2">
+                  {/* Step 1: Upload */}
+                  <div
+                    className={`flex flex-col items-center ${
+                      status !== "not_submitted"
+                        ? "text-blue-600"
+                        : "text-gray-400"
+                    }`}
+                  >
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                        status !== "not_submitted"
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-200"
+                      }`}
+                    >
+                      {status !== "not_submitted" ? (
+                        <FiCheckCircle size={16} />
+                      ) : (
+                        <span className="text-xs">1</span>
+                      )}
+                    </div>
+                    <span className="mt-2 text-xs font-medium">Upload</span>
+                  </div>
 
-              <button
-                className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center ${
-                  file
-                    ? "bg-blue-600 hover:bg-blue-700 text-white"
-                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                }`}
-                onClick={handleSubmitW9}
-                disabled={!file || loading}
-              >
-                {loading ? (
-                  <>
-                    <FiLoader className="animate-spin mr-2" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit W9 Form"
-                )}
-              </button>
-            </div>
-          )}
+                  {/* Step 2: Review */}
+                  <div
+                    className={`flex flex-col items-center ${
+                      ["in_progress", "approved", "declined"].includes(status)
+                        ? "text-yellow-600"
+                        : "text-gray-400"
+                    }`}
+                  >
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                        ["in_progress", "approved", "declined"].includes(status)
+                          ? "bg-yellow-500 text-white"
+                          : "bg-gray-200"
+                      }`}
+                    >
+                      {status === "in_progress" ? (
+                        <FiLoader className="animate-spin" size={16} />
+                      ) : (
+                        <span className="text-xs">2</span>
+                      )}
+                    </div>
+                    <span className="mt-2 text-xs font-medium">Review</span>
+                  </div>
 
-          {/* File preview */}
-          {fileURL && status !== "not_submitted" && (
-            <div className="mt-4 text-center">
-              <a
-                href={fileURL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium inline-flex items-center"
-              >
-                <FiUpload className="mr-1" /> View Uploaded W9 Form
-              </a>
-            </div>
-          )}
+                  {/* Step 3: Final */}
+                  <div
+                    className={`flex flex-col items-center ${
+                      status === "approved"
+                        ? "text-green-600"
+                        : status === "declined"
+                        ? "text-red-600"
+                        : "text-gray-400"
+                    }`}
+                  >
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                        status === "approved"
+                          ? "bg-green-500 text-white"
+                          : status === "declined"
+                          ? "bg-red-500 text-white"
+                          : "bg-gray-200"
+                      }`}
+                    >
+                      {status === "approved" || status === "declined" ? (
+                        <FiCheckCircle size={16} />
+                      ) : (
+                        <span className="text-xs">3</span>
+                      )}
+                    </div>
+                    <span className="mt-2 text-xs font-medium">
+                      {status === "declined" ? "Declined" : "Approved"}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-          {/* Declined reason */}
-          {status === "declined" && declineReason && (
-            <div className="mt-3 text-center text-sm text-red-600 flex items-center justify-center gap-2">
-              <FiAlertCircle /> <span className=" font-bold">Declined Remark:</span>{" "}
-              {declineReason}
-            </div>
-          )}
+              {/* Upload area */}
+              {status !== "approved" && (
+                <div className="flex flex-col gap-4">
+                  <label className="w-full">
+                    <div
+                      className={`px-6 py-3 rounded-lg border-2 mt-4 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${
+                        file
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-300 hover:border-blue-400"
+                      }`}
+                    >
+                      <FiUpload size={24} className="text-blue-500 mb-2" />
+                      <span className="text-sm font-medium text-gray-700">
+                        {file ? file.name : "Click to upload W9 form"}
+                      </span>
+                      <span className="text-xs text-gray-500 mt-1">
+                        PDF format only (max 5MB)
+                      </span>
+                    </div>
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      accept=".pdf,application/pdf"
+                    />
+                  </label>
 
-          {/* Error */}
-          {error && (
-            <div className="mt-4 text-center text-red-500 text-sm">{error}</div>
-          )}
+                  <button
+                    className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center ${
+                      file
+                        ? "bg-blue-600 hover:bg-blue-700 text-white"
+                        : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    }`}
+                    onClick={handleSubmitW9}
+                    disabled={!file || loading}
+                  >
+                    {loading ? (
+                      <>
+                        <FiLoader className="animate-spin mr-2" />
+                        Submitting...
+                      </>
+                    ) : (
+                      "Submit W9 Form"
+                    )}
+                  </button>
+                </div>
+              )}
 
-          {/* Approved message */}
-          {status === "approved" && (
-            <div className="mt-4 text-center text-sm text-gray-600">
-              Your W9 form has been successfully verified. No further action is
-              required.
+              {/* File preview */}
+              {fileURL && status !== "not_submitted" && (
+                <div className="mt-4 text-center">
+                  <a
+                    href={fileURL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium inline-flex items-center"
+                  >
+                    <FiUpload className="mr-1" /> View Uploaded W9 Form
+                  </a>
+                </div>
+              )}
+
+              {/* Declined reason */}
+              {status === "declined" && declineReason && (
+                <div className="mt-3 text-center text-sm text-red-600 flex items-center justify-center gap-2">
+                  <FiAlertCircle />{" "}
+                  <span className=" font-bold">Declined Remark:</span>{" "}
+                  {declineReason}
+                </div>
+              )}
+
+              {/* Error */}
+              {error && (
+                <div className="mt-4 text-center text-red-500 text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* Approved message */}
+              {status === "approved" && (
+                <div className="mt-4 text-center text-sm text-gray-600">
+                  Your W9 form has been successfully verified. No further action
+                  is required.
+                </div>
+              )}
             </div>
           )}
         </div>

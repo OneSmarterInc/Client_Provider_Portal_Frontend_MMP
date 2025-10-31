@@ -128,6 +128,8 @@ const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+
   const handleValidate = async () => {
     if (!validateProviderFields()) return;
 
@@ -136,9 +138,7 @@ const Register = () => {
       const response = await axios.get(
         `${api}/check_provno_exists_for_login/`,
         {
-          params: {
-            provider_no: formData.provider_no,
-          },
+          params: { provider_no: formData.provider_no },
         }
       );
 
@@ -146,7 +146,7 @@ const Register = () => {
         toast.success("Provider validated successfully!");
         setIsProviderValidated(true);
       } else {
-        toast.error("Provider not found. Please check your details.");
+        setShowRegisterModal(true); // ✅ Open modal instead of toast
         setIsProviderValidated(false);
       }
     } catch (error) {
@@ -379,6 +379,37 @@ const Register = () => {
           </button>
         </div>
       </div>
+      {showRegisterModal && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-[90%] max-w-md shadow-lg">
+            <h2 className="text-xl font-semibold mb-3">Provider Not Found</h2>
+
+            <p className="text-gray-600 mb-6">
+              The provider number you entered is not in our record. Do you want
+              to register as a provider?
+            </p>
+
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowRegisterModal(false)}
+                className="text-gray-700 font-semibold hover:text-gray-900"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowRegisterModal(false);
+                  navigate("/new-provider-register");
+                }}
+                className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-2 rounded-lg"
+              >
+                Yes, Register
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

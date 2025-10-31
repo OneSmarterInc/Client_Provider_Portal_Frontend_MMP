@@ -457,8 +457,25 @@ const TotalClaimsFound = ({
                   <React.Fragment key={index}>
                     <tr className="border-b text-xs hover:bg-gray-50 ">
                       <td
-                        onClick={() => handleEOBClick(claim?.["CHCLM#"])}
-                        className="py-3 cursor-pointer text-center text-[#0486A5] hover:underline underline-offset-4 hover:text-sky-400 font-medium"
+                        onClick={() => {
+                          if (
+                            claim?.["CHHDST"] !== "V" &&
+                            claim?.["CHHDST"] !== "O"
+                          ) {
+                            handleEOBClick(claim?.["CHCLM#"]);
+                          }
+                        }}
+                        title={
+                          claim?.["CHHDST"] === "V" || claim?.["CHHDST"] === "O"
+                            ? "EOB not available for Open or Void claims"
+                            : ""
+                        }
+                        className={`py-3 text-center font-medium cursor-pointer underline-offset-4 
+                      ${
+                        claim?.["CHHDST"] === "V" || claim?.["CHHDST"] === "O"
+                          ? "text-gray-400 cursor-not-allowed no-underline"
+                          : "text-[#0486A5] hover:underline hover:text-sky-400"
+                      }`}
                       >
                         EOB
                       </td>

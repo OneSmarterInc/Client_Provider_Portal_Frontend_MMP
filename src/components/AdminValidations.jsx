@@ -50,6 +50,18 @@ const AdminValidations = () => {
         [newStatus === "approved" ? "approve" : "decline"]: userId,
       }));
 
+      const responseDB2 = await axios.post(
+        `${api}/w9/status-db2-update/`,
+        {
+          provider_no: user?.provider_no,
+        },
+        {
+          headers: {
+            Authorization: `Token ${admin_token}`,
+          },
+        }
+      );
+
       const response = await axios.post(
         `${api}/api/admin/w9-approve/`,
         { user_id: userId, status: newStatus, decline_remark: remark },
@@ -230,7 +242,13 @@ const AdminValidations = () => {
             </div>
 
             {/* Right Section: User Info */}
-            <div className="flex items-center gap-3 mt-3 md:mt-0">
+            <div className="flex w-full items-center gap-3 mt-3 md:mt-0">
+              <div
+                className="min-w-48 text-sm cursor-pointer bg-cyan-600 text-gray-50 p-1  text-center rounded-md"
+                onClick={() => navigate("/admin-new-prov-request")}
+              >
+                New Providers Request
+              </div>
               <div
                 className="w-28 text-sm cursor-pointer bg-cyan-600 text-gray-50 p-1  text-center rounded-md"
                 onClick={() => navigate("/loginlogs")}

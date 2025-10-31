@@ -34,11 +34,28 @@ const FirstVerificationScreen = () => {
 
   const location = useLocation();
 
-  const fetchUserW9Status = async () => {
+  // const fetchUserW9Status = async () => {
+  //   try {
+  //     setLoading(true);
+  //     setError(null);
+  //     const response = await axios.get(`${api}/w9/status/${userData.id}/`);
+  //     if (response.data) {
+  //       setStatus(response.data.status || "not_submitted");
+  //     }
+  //   } catch (error) {
+  //     setError("Failed to fetch W9 status. Please try again.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  const fetchUserW9StatusFromDB2 = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(`${api}/w9/status/${userData.id}/`);
+      const response = await axios.get(
+        `${api}/w9/status-db2/?provider_no=${userData?.provider_no}`
+      );
       if (response.data) {
         setStatus(response.data.status || "not_submitted");
       }
@@ -61,7 +78,8 @@ const FirstVerificationScreen = () => {
   }, [userData, verificationShown, navigate]);
 
   useEffect(() => {
-    fetchUserW9Status();
+    // fetchUserW9Status();
+    fetchUserW9StatusFromDB2();
   }, []);
 
   if (!userData || verificationShown) {
@@ -80,6 +98,10 @@ const FirstVerificationScreen = () => {
 
   const getStatus = () => {
     switch (status) {
+      case "W9_form_uploaded":
+        return "W9 form Uploaded";
+      case "W9_form_not_uploaded":
+        return "W9 form not uploaded";
       case "in_progress":
         return "In Progress";
       case "approved":
@@ -93,6 +115,10 @@ const FirstVerificationScreen = () => {
 
   const getStatusText = () => {
     switch (status) {
+      case "W9_form_uploaded":
+        return "Your W9 form has been uploaded!";
+      case "W9_form_not_uploaded":
+        return "Upload your W9 form to get started.";
       case "not_submitted":
         return "Upload your W9 form to get started.";
       case "in_progress":
@@ -108,6 +134,10 @@ const FirstVerificationScreen = () => {
 
   const getStatusColor = () => {
     switch (status) {
+      case "W9_form_uploaded":
+        return "text-green-600";
+      case "W9_form_not_uploaded":
+        return "text-yellow-600";
       case "in_progress":
         return "text-yellow-600";
       case "approved":
