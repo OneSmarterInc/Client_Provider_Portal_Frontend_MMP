@@ -16,7 +16,7 @@ const AdminValidations = () => {
     decline: null,
   });
   const admin_token = localStorage.getItem("authToken");
-  const user = JSON.parse(localStorage.getItem("user"));
+  const admin = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
     fetchAllUsers();
@@ -43,24 +43,20 @@ const AdminValidations = () => {
     }
   };
 
-  const handleStatusChange = async (userId, newStatus, remark = "") => {
+  const handleStatusChange = async (userId, provider_no, newStatus, remark = "") => {
     try {
       setActionLoading((prev) => ({
         ...prev,
         [newStatus === "approved" ? "approve" : "decline"]: userId,
       }));
 
-      const responseDB2 = await axios.post(
-        `${api}/w9/status-db2-update/`,
-        {
-          provider_no: user?.provider_no,
-        },
-        {
-          headers: {
-            Authorization: `Token ${admin_token}`,
-          },
-        }
-      );
+      if (newStatus === "approved") {
+        await axios.post(
+          `${api}/w9/status-db2-update/`,
+          { provider_no },
+          { headers: { Authorization: `Token ${admin_token}` } }
+        );
+      }
 
       const response = await axios.post(
         `${api}/api/admin/w9-approve/`,
@@ -92,9 +88,8 @@ const AdminValidations = () => {
       console.error("Error changing status", error);
       toast.error(
         error.response?.data?.message ||
-          `Failed to ${
-            newStatus === "approved" ? "approve" : "decline"
-          } W9 form`
+        `Failed to ${newStatus === "approved" ? "approve" : "decline"
+        } W9 form`
       );
     } finally {
       setActionLoading({
@@ -105,15 +100,15 @@ const AdminValidations = () => {
   };
   const [isDeclineRemarkModalOpen, setIsDeclineRemarkModalOpen] =
     useState(false);
-  const [declineUserId, setDeclineUserId] = useState();
-  const handleAddDeclineRemark = (user_id) => {
-    setDeclineUserId(user_id);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const handleAddDeclineRemark = (user) => {
+    setSelectedUser(user);
     setIsDeclineRemarkModalOpen(true);
   };
 
   const openPdf = (fileUrl) => {
     if (fileUrl) {
-      window.open(`${api}${fileUrl}`, "_blank");
+      window.open(`${fileUrl}`, "_blank");
     } else {
       toast.warning("No file available to view");
     }
@@ -136,9 +131,8 @@ const AdminValidations = () => {
 
     return (
       <span
-        className={`px-2 py-1 rounded-full text-xs font-medium ${
-          statusClasses[status] || statusClasses.default
-        }`}
+        className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses[status] || statusClasses.default
+          }`}
       >
         {statusText[status] || statusText.default}
       </span>
@@ -256,7 +250,7 @@ const AdminValidations = () => {
                 View Logs
               </div>
               <h3 className="font-inter text-sm text-black">
-                Welcome, {user?.email}!
+                Welcome, {admin?.email}!
               </h3>
               <img
                 src="/images/Header/img-11.png"
@@ -295,7 +289,7 @@ const AdminValidations = () => {
                           key: "user_email",
                           direction:
                             prev.key === "user_email" &&
-                            prev.direction === "asc"
+                              prev.direction === "asc"
                               ? "desc"
                               : "asc",
                         }))
@@ -310,7 +304,7 @@ const AdminValidations = () => {
                           key: "user_provider_no",
                           direction:
                             prev.key === "user_provider_no" &&
-                            prev.direction === "asc"
+                              prev.direction === "asc"
                               ? "desc"
                               : "asc",
                         }))
@@ -339,7 +333,7 @@ const AdminValidations = () => {
                           key: "uploaded_at",
                           direction:
                             prev.key === "uploaded_at" &&
-                            prev.direction === "asc"
+                              prev.direction === "asc"
                               ? "desc"
                               : "asc",
                         }))
@@ -354,7 +348,7 @@ const AdminValidations = () => {
                           key: "file_updated_at",
                           direction:
                             prev.key === "file_updated_at" &&
-                            prev.direction === "asc"
+                              prev.direction === "asc"
                               ? "desc"
                               : "asc",
                         }))
@@ -412,15 +406,15 @@ const AdminValidations = () => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             {user?.uploaded_at
                               ? user?.uploaded_at
-                                  ?.toLocaleString()
-                                  ?.split("T")?.[0]
+                                ?.toLocaleString()
+                                ?.split("T")?.[0]
                               : ""}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {user?.file_updated_at
                               ? user?.file_updated_at
-                                  ?.toLocaleString()
-                                  ?.split("T")?.[0]
+                                ?.toLocaleString()
+                                ?.split("T")?.[0]
                               : ""}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -454,16 +448,15 @@ const AdminValidations = () => {
                               <div className="flex justify-center space-x-2">
                                 <button
                                   onClick={() =>
-                                    handleStatusChange(user.user_id, "approved")
+                                    handleStatusChange(user.user_id, user.user_provider_no, "approved")
                                   }
                                   disabled={
                                     actionLoading.approve === user.user_id
                                   }
-                                  className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-75 disabled:cursor-not-allowed ${
-                                    actionLoading.decline === user.user_id
-                                      ? "hidden"
-                                      : ""
-                                  }`}
+                                  className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-75 disabled:cursor-not-allowed ${actionLoading.decline === user.user_id
+                                    ? "hidden"
+                                    : ""
+                                    }`}
                                 >
                                   {actionLoading.approve === user.user_id ? (
                                     <>
@@ -475,20 +468,14 @@ const AdminValidations = () => {
                                   )}
                                 </button>
                                 <button
-                                  onClick={() =>
-                                    handleAddDeclineRemark(
-                                      user.user_id,
-                                      "declined"
-                                    )
-                                  }
+                                  onClick={() => handleAddDeclineRemark(user)}
                                   disabled={
                                     actionLoading.decline === user.user_id
                                   }
-                                  className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-75 disabled:cursor-not-allowed ${
-                                    actionLoading.approve === user.user_id
-                                      ? "hidden"
-                                      : ""
-                                  }`}
+                                  className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-75 disabled:cursor-not-allowed ${actionLoading.approve === user.user_id
+                                    ? "hidden"
+                                    : ""
+                                    }`}
                                 >
                                   {actionLoading.decline === user.user_id ? (
                                     <>
@@ -503,7 +490,7 @@ const AdminValidations = () => {
                             ) : (
                               <span className="text-gray-500 italic">
                                 {user.status === "declined" &&
-                                user.declined_at ? (
+                                  user.declined_at ? (
                                   <span className="text-gray-500 italic">
                                     Declined on {user.declined_at.split("T")[0]}{" "}
                                     at{" "}
@@ -559,10 +546,15 @@ const AdminValidations = () => {
         <DeclineRemarkModal
           isOpen={isDeclineRemarkModalOpen}
           onClose={() => setIsDeclineRemarkModalOpen(false)}
-          onDecline={(userId, status, remark) =>
-            handleStatusChange(userId, status, remark)
+          onDecline={(remark) =>
+            handleStatusChange(
+              selectedUser.user_id,
+              selectedUser.user_provider_no,
+              "declined",
+              remark
+            )
           }
-          userId={declineUserId}
+          user={selectedUser}
         />
       </div>
       <div className="">

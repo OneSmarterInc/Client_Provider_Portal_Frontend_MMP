@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 
-const DeclineRemarkModal = ({ isOpen, onClose, onDecline, userId }) => {
+const DeclineRemarkModal = ({ isOpen, onClose, onDecline }) => {
   const [remark, setRemark] = useState("");
 
   const handleDecline = () => {
-    onDecline(userId, "declined", remark);
+    onDecline(remark);   // ✅ Only pass remark
     setRemark("");
     onClose();
   };
@@ -17,7 +17,7 @@ const DeclineRemarkModal = ({ isOpen, onClose, onDecline, userId }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm bg-opacity-40 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
       <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
         <h2 className="text-xl font-semibold mb-4 text-gray-800">
           Decline Remark
@@ -40,7 +40,7 @@ const DeclineRemarkModal = ({ isOpen, onClose, onDecline, userId }) => {
           </button>
           <button
             onClick={handleDecline}
-            className="px-4 py-2 rounded-lg cursor-pointer bg-red-500 hover:bg-red-600 text-white"
+            className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white"
             disabled={!remark.trim()}
           >
             Decline
