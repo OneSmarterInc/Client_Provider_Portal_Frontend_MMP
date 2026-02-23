@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import backgroundImage from "../assets/image.png";
-import { Eye, EyeOff, AtSign, Loader2 } from "lucide-react";
+import { Eye, EyeOff, AtSign } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -10,23 +10,31 @@ import MyContext from "../ContextApi/MyContext";
 const ProviderLogin = () => {
   const { api } = useContext(MyContext);
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     ip_address: "",
     browser_info: "",
   });
+
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Fetch user's IP address
+  const [step, setStep] = useState("login");
+  const [otp, setOtp] = useState("");
+  const [verificationToken, setVerificationToken] = useState(
+    sessionStorage.getItem("verificationToken") || ""
+  );
+
+  // Fetch IP Address
   const fetchIpAddress = async () => {
     try {
-      const res = await axios.get(`https://api64.ipify.org?format=json`);
+      const res = await axios.get("https://api64.ipify.org?format=json");
       setFormData((prev) => ({ ...prev, ip_address: res.data.ip }));
     } catch (err) {
-      console.error("Error fetching IP address:", err);
+      console.error("IP fetch error:", err);
     }
   };
 
@@ -36,27 +44,26 @@ const ProviderLogin = () => {
       ...prev,
       browser_info: navigator.userAgent,
     }));
+
+    const token = sessionStorage.getItem("verificationToken");
+    if (token) {
+      setStep("otp");
+    }
   }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-    // Clear error when user types
+    setFormData({ ...formData, [name]: value });
+
     if (errors[name]) {
-      setErrors({
-        ...errors,
-        [name]: "",
-      });
+      setErrors({ ...errors, [name]: "" });
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
     if (!formData.email.trim()) {
-      newErrors.email = "Email/Username is required";
+      newErrors.email = "Email is required";
     }
     if (!formData.password) {
       newErrors.password = "Password is required";
@@ -65,43 +72,75 @@ const ProviderLogin = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // STEP 1 — Send Login OTP
   const handleLogin = async () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
     try {
-      const response = await axios.post(`${api}/auth/login/`, {
+      const response = await axios.post(`${api}/auth/send-login-otp/`, {
         email: formData.email,
         password: formData.password,
-        ip_address: formData?.ip_address,
-        browser_info: formData?.browser_info,
+        ip_address: formData.ip_address,
+        browser_info: formData.browser_info,
+      });
+
+      if (response.data.verification_token) {
+        setVerificationToken(response.data.verification_token);
+        sessionStorage.setItem(
+          "verificationToken",
+          response.data.verification_token
+        );
+        setStep("otp");
+        toast.success("OTP sent to your registered email.");
+      } else {
+        toast.error("Failed to send OTP.");
+      }
+    } catch (error) {
+      toast.error(
+        error.response?.data?.error || "Invalid credentials"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // STEP 2 — Verify OTP
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) {
+      toast.error("Please enter valid 6 digit OTP");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await axios.post(`${api}/auth/verify-login-otp/`, {
+        otp,
+        verification_token: verificationToken,
+        ip_address: formData.ip_address,
+        browser_info: formData.browser_info,
       });
 
       if (response.data.token) {
-        // Store user data and token in local storage
         localStorage.setItem("authToken", response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data.user));
 
-        toast.success(response.data.message || "Login successful!");
+        toast.success("Login successful!");
 
-        response.data.user?.is_admin ? navigate("/admin") : navigate("/verify");
-      } else {
-        toast.error("Login failed. Please try again.");
+        // Reset everything
+        setOtp("");
+        setVerificationToken("");
+        sessionStorage.removeItem("verificationToken");
+        setStep("login");
+
+        response.data.user?.is_admin
+          ? navigate("/admin")
+          : navigate("/verify");
       }
     } catch (error) {
-      console.error("Login error:", error);
-      if (error.response) {
-        // Handle backend validation errors
-        if (error.response.data) {
-          toast.error(error.response.data.message || "Invalid credentials");
-        } else {
-          toast.error("Login failed. Please try again.");
-        }
-      } else if (error.request) {
-        toast.error("Network error. Please check your connection.");
-      } else {
-        toast.error("An unexpected error occurred.");
-      }
+      toast.error(
+        error.response?.data?.error || "Invalid or expired OTP"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -109,10 +148,6 @@ const ProviderLogin = () => {
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
-  };
-
-  const handleForgotPassword = () => {
-    toast.info("Forgot password functionality coming soon!");
   };
 
   const divStyle = {
@@ -133,9 +168,9 @@ const ProviderLogin = () => {
           </h3>
         </div>
 
-        {/* Email/Username Field */}
+        {/* Email Field */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="email" className="text-gray-600 text-sm">
+          <label className="text-gray-600 text-sm">
             Registered Email<span className="text-red-600">*</span>
           </label>
           <div
@@ -151,7 +186,7 @@ const ProviderLogin = () => {
               value={formData.email}
               onChange={handleChange}
             />
-            <div className="items-center justify-center border-l-2 pl-2">
+            <div className="border-l-2 pl-2">
               <AtSign className="w-4 h-4 text-[#0486A5]" />
             </div>
           </div>
@@ -161,79 +196,96 @@ const ProviderLogin = () => {
         </div>
 
         {/* Password Field */}
-        <div className="flex flex-col gap-1">
-          <label htmlFor="password" className="text-gray-600 text-sm">
-            Password<span className="text-red-600">*</span>
-          </label>
-          <div
-            className={`flex flex-row bg-white border-2 rounded justify-between h-10 p-2 ${
-              errors.password ? "border-red-500" : "border-gray-300"
-            }`}
-          >
-            <input
-              className="border-0 w-full outline-none text-sm"
-              type={showPassword ? "text" : "password"}
-              name="password"
-              placeholder="Enter your password"
-              value={formData.password}
-              onChange={handleChange}
-            />
+        {step === "login" && (
+          <div className="flex flex-col gap-1">
+            <label className="text-gray-600 text-sm">
+              Password<span className="text-red-600">*</span>
+            </label>
             <div
-              className="items-center justify-center border-l-2 pl-2 cursor-pointer"
-              onClick={togglePasswordVisibility}
+              className={`flex flex-row bg-white border-2 rounded justify-between h-10 p-2 ${
+                errors.password ? "border-red-500" : "border-gray-300"
+              }`}
             >
-              {showPassword ? (
-                <EyeOff className="w-4 h-4 text-[#0486A5]" />
-              ) : (
-                <Eye className="w-4 h-4 text-[#0486A5]" />
-              )}
+              <input
+                className="border-0 w-full outline-none text-sm"
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={handleChange}
+              />
+              <div
+                className="border-l-2 pl-2 cursor-pointer"
+                onClick={togglePasswordVisibility}
+              >
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4 text-[#0486A5]" />
+                ) : (
+                  <Eye className="w-4 h-4 text-[#0486A5]" />
+                )}
+              </div>
             </div>
+            {errors.password && (
+              <p className="text-red-500 text-xs">{errors.password}</p>
+            )}
           </div>
-          {errors.password && (
-            <p className="text-red-500 text-xs">{errors.password}</p>
-          )}
-        </div>
+        )}
 
-        {/* Login Button and Forgot Password */}
-        <div className="flex flex-row justify-between items-center mt-2">
+        {/* OTP Step */}
+        {step === "otp" && (
+          <div className="flex flex-col gap-1">
+            <label className="text-gray-600 text-sm">
+              Enter OTP<span className="text-red-600">*</span>
+            </label>
+            <input
+              type="text"
+              maxLength="6"
+              value={otp}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, "");
+                setOtp(value);
+              }}
+              className="border-2 rounded h-10 p-2 text-sm"
+              placeholder="Enter 6 digit OTP"
+            />
+          </div>
+        )}
+
+        {/* Button */}
+        {step === "login" ? (
           <button
-            className="bg-[#0486A5] hover:bg-[#047B95] py-2 px-6 text-white rounded-lg text-sm flex items-center justify-center"
+            className="bg-[#0486A5] hover:bg-[#047B95] py-2 px-6 text-white rounded-lg text-sm"
             onClick={handleLogin}
             disabled={isLoading}
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Logging in...
-              </>
-            ) : (
-              "Login"
-            )}
+            {isLoading ? "Sending OTP..." : "Login"}
           </button>
-          <p
-            className="text-sm text-gray-700 cursor-pointer hover:text-[#0486A5] hover:underline"
-            onClick={() => navigate("/forgot-password")}
+        ) : (
+          <button
+            className="bg-[#0486A5] hover:bg-[#047B95] py-2 px-6 text-white rounded-lg text-sm"
+            onClick={handleVerifyOtp}
+            disabled={isLoading}
           >
-            Forgot Password?
+            {isLoading ? "Verifying..." : "Verify OTP"}
+          </button>
+        )}
+
+        {/* Register Link */}
+        <div className="text-center">
+          <p className="text-sm text-gray-600">
+            No account yet?{" "}
+            <a
+              href="/register"
+              className="text-[#0486A5] hover:underline font-medium"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate("/register");
+              }}
+            >
+              Register as a new provider.
+            </a>
           </p>
         </div>
-      </div>
-
-      {/* Registration Link */}
-      <div className="text-center">
-        <p className="text-sm text-gray-600">
-          No account yet?{" "}
-          <a
-            href="/register"
-            className="text-[#0486A5] hover:underline font-medium"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/register");
-            }}
-          >
-            Register as a new provider.
-          </a>
-        </p>
       </div>
     </div>
   );
