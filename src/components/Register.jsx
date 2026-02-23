@@ -71,6 +71,11 @@ const Register = () => {
     confirm_password: "",
   });
 
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [verificationToken, setVerificationToken] = useState("");
+
+
   const [errors, setErrors] = useState({});
   const [isProviderValidated, setIsProviderValidated] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -158,42 +163,53 @@ const Register = () => {
     }
   };
 
-  const handleRegister = async () => {
-    if (!validateForm()) return;
+ const handleRegister = async () => {
+  if (!validateForm()) return;
 
-    setIsRegistering(true);
-    try {
-      const payload = {
-        provider_no: formData.provider_no,
-        email: formData.email,
-        phone_no: formData.phone_no,
-        password: formData.password,
-        confirm_password: formData.confirm_password,
-      };
+  setIsRegistering(true);
+  try {
+    const payload = {
+      provider_no: formData.provider_no,
+      email: formData.email,
+      phone_no: formData.phone_no,
+      password: formData.password,
+      confirm_password: formData.confirm_password,
+    };
 
-      const response = await axios.post(`${api}/auth/register/`, payload);
-      toast.success(
-        "Registration successful! Please check your email to activate your account."
-      );
-      navigate("/login");
-    } catch (error) {
-      console.error("Registration Error:", error);
-      if (error.response) {
-        if (error.response.data) {
-          const backendErrors = error.response.data;
-          Object.keys(backendErrors).forEach((key) => {
-            toast.error(`${key}: ${backendErrors[key]}`);
-          });
-        } else {
-          toast.error("Registration failed. Please try again.");
-        }
-      } else {
-        toast.error("Network error. Please check your connection.");
-      }
-    } finally {
-      setIsRegistering(false);
-    }
-  };
+    const response = await axios.post(
+      `${api}/auth/send-register-otp/`,
+      payload
+    );
+
+    setVerificationToken(response.data.verification_token);
+    setShowOtpModal(true);
+    toast.success("OTP sent to your email");
+  } catch (error) {
+    toast.error("Failed to send OTP");
+  } finally {
+    setIsRegistering(false);
+  }
+};
+
+const handleVerifyOtp = async () => {
+  try {
+    const payload = {
+      ...formData,
+      otp,
+      verification_token: verificationToken,
+    };
+
+    await axios.post(`${api}/auth/verify-register-otp/`, payload);
+
+    toast.success("Registration successful!");
+    setShowOtpModal(false);
+    navigate("/login");
+  } catch (error) {
+    toast.error("Invalid or expired OTP");
+  }
+};
+
+
 
   const togglePasswordVisibility = () => {
     setIsPasswordVisible(!isPasswordVisible);
@@ -409,6 +425,39 @@ const Register = () => {
           </div>
         </div>
       )}
+
+      {showOtpModal && (
+  <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+    <div className="bg-white rounded-2xl p-6 w-[90%] max-w-md shadow-lg">
+      <h2 className="text-xl font-semibold mb-3">Enter OTP</h2>
+
+      <input
+        type="text"
+        placeholder="Enter 6 digit OTP"
+        className="w-full border p-2 rounded mb-4"
+        value={otp}
+        onChange={(e) => setOtp(e.target.value)}
+      />
+
+      <div className="flex justify-end space-x-4">
+        <button
+          onClick={() => setShowOtpModal(false)}
+          className="text-gray-700 font-semibold hover:text-gray-900"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={handleVerifyOtp}
+          className="bg-[#0486A5] hover:bg-[#047B95] text-white font-semibold px-4 py-2 rounded-lg"
+        >
+          Verify
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };
