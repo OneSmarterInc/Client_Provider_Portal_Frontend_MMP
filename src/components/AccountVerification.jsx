@@ -8,8 +8,9 @@ import MyContext from "../ContextApi/MyContext";
 
 const AccountVerification = ({ setShowMyProfile, showMyProfile }) => {
   const navigate = useNavigate();
-  const { api } = useContext(MyContext);
+  const { api, activeProvider } = useContext(MyContext);
   const userData = JSON.parse(localStorage.getItem("user"));
+  const currentProviderNo = activeProvider?.provider_no || userData?.provider_no;
 
   const formatDate = (dateString) => {
     if (!dateString) return "Not available";
@@ -58,7 +59,7 @@ const AccountVerification = ({ setShowMyProfile, showMyProfile }) => {
       setLoading(true);
       setError(null);
       const response = await axios.get(
-        `${api}/w9/status-db2/?provider_no=${userData?.provider_no}`
+        `${api}/w9/status-db2/?provider_no=${currentProviderNo}`
       );
       if (response.data) {
         setStatus(response.data.status || "not_submitted");
@@ -168,7 +169,7 @@ const AccountVerification = ({ setShowMyProfile, showMyProfile }) => {
               <div>
                 <p className="text-gray-500 text-sm">Provider Number:</p>
                 <p className="text-[#0486A5] text-sm mb-2">
-                  {userData.provider_no || "N/A"}
+                  {currentProviderNo || "N/A"}
                 </p>
               </div>
               <div>

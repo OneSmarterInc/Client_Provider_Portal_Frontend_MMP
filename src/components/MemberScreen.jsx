@@ -9,7 +9,7 @@ import AccountVerification from "./AccountVerification";
 import MemberScreenNavbar from "./MemberScreenNavbar";
 
 const MemberScreen = () => {
-  const { api } = useContext(MyContext);
+  const { api, activeProvider, w9ApprovedProviders, switchProvider } = useContext(MyContext);
   const [isOpenList, setIsOpenList] = useState(false);
   const [showW9Form, setShowW9Form] = useState(false);
   const [showMyProfile, setShowMyProfile] = useState(false);
@@ -22,12 +22,22 @@ const MemberScreen = () => {
   const [currLoading, setCurrLoading] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user"));
-  const provider_no = user?.provider_no;
+  const provider_no = activeProvider?.provider_no || user?.provider_no;
+
+  // Auto-switch to first W9-approved provider if active provider doesn't have W9 approved
+  useEffect(() => {
+    if (activeProvider && w9ApprovedProviders?.length > 0) {
+      const isW9Approved = activeProvider.w9_status === "approved" || activeProvider.w9_status === "W9_form_uploaded";
+      if (!isW9Approved) {
+        switchProvider(w9ApprovedProviders[0]);
+      }
+    }
+  }, [activeProvider, w9ApprovedProviders]);
 
   useEffect(() => {
     fetchPreviousMonthCounts();
     fetchcurrentMonthCounts();
-  }, []);
+  }, [activeProvider]);
 
   const [currentMonthCounts, setCurrentMonthCount] = useState({});
   const fetchcurrentMonthCounts = async () => {

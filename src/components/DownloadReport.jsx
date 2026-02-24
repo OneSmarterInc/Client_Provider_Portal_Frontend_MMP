@@ -176,9 +176,14 @@ const DownloadReport = ({ isOpen, setIsDownloadReportOpen, ssn }) => {
           <div className="flex gap-2 justify-end items-end">
             <button
               onClick={handleSearch}
-              className="bg-[#0486A5] text-white px-3 py-1.5 rounded shadow hover:bg-[#036880] transition text-sm"
+              disabled={loading}
+              className={`px-3 py-1.5 rounded shadow transition text-sm text-white ${
+                loading
+                  ? "bg-[#0486A5]/60 cursor-not-allowed"
+                  : "bg-[#0486A5] hover:bg-[#036880]"
+              }`}
             >
-              Search
+              {loading ? "Searching..." : "Search"}
             </button>
             <button
               onClick={() =>
