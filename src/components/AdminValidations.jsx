@@ -472,23 +472,23 @@ const AdminValidations = () => {
             </div>
 
             {/* Right Section: User Info */}
-            <div className="flex items-center gap-9 mt-3 md:mt-0 ml-auto ">
+            <div className="flex items-center gap-4 mt-3 md:mt-0 ml-auto flex-shrink-0">
               <div
-                className="whitespace-nowrap px-3 text-sm cursor-pointer bg-cyan-600 text-gray-50 p-1 text-center rounded-md"
+                className="whitespace-nowrap px-3 py-1 text-sm cursor-pointer bg-cyan-600 text-gray-50 text-center rounded-md"
                 onClick={() => navigate("/loginlogs")}
               >
                 View Logs
               </div>
-              <h3 className="font-inter text-sm text-black">
+              <h3 className="font-inter text-sm text-black whitespace-nowrap">
                 Welcome, {admin?.email}!
               </h3>
               <img
                 src="/images/Header/img-11.png"
                 alt="Profile"
-                className="w-8 sm:w-10"
+                className="w-8 sm:w-10 flex-shrink-0"
                 aria-label="User profile"
               />
-              <div onClick={() => handleLogout()}>
+              <div onClick={() => handleLogout()} className="flex-shrink-0">
                 <img
                   className="w-6 cursor-pointer"
                   src="/images/Header/Vector.png"
