@@ -5,8 +5,9 @@ import { useNavigate } from "react-router-dom";
 import backgroundImage from "../assets/image.png";
 
 const Watchlist = () => {
-  const { api } = useContext(MyContext);
+  const { api, activeProvider } = useContext(MyContext);
   const userData = JSON.parse(localStorage.getItem("user"));
+  const currentProviderNo = activeProvider?.provider_no || userData?.provider_no;
   const [watchlist_id, setId] = useState("");
   const [serviceDate, setServiceDate] = useState("");
   const [watchlistItems, setWatchlistItems] = useState([]);
@@ -25,7 +26,7 @@ const Watchlist = () => {
 
     try {
       const response = await axios.post(`${api}/api/watchlist/add/`, {
-        provider_no: userData?.provider_no,
+        provider_no: currentProviderNo,
         watchlist_id: watchlist_id,
         serviceDate: serviceDate,
         email: userData?.email,

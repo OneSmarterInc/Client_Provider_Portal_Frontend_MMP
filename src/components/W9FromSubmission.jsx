@@ -9,8 +9,8 @@ import {
 } from "react-icons/fi";
 import MyContext from "../ContextApi/MyContext";
 
-const W9FromSubmission = ({ showW9Form, setShowW9Form }) => {
-  const { api } = useContext(MyContext);
+const W9FromSubmission = ({ showW9Form, setShowW9Form, skipDb2Check = false, selectedProvider: selectedProviderProp }) => {
+  const { api, activeProvider } = useContext(MyContext);
   const [status, setStatus] = useState("not_submitted");
   const [file, setFile] = useState(null);
   const [fileURL, setFileURL] = useState("");
@@ -19,6 +19,8 @@ const W9FromSubmission = ({ showW9Form, setShowW9Form }) => {
   const [declineReason, setDeclineReason] = useState(null);
 
   const user = JSON.parse(localStorage.getItem("user"));
+  const effectiveProvider = selectedProviderProp || activeProvider;
+  const currentProviderNo = effectiveProvider?.provider_no || user?.provider_no;
 
   const [db2W9Status, setDb2W9Status] = useState("");
   const [isCheckingDB2Status, setIsCheckingDB2Status] = useState(true);
@@ -28,7 +30,7 @@ const W9FromSubmission = ({ showW9Form, setShowW9Form }) => {
       setIsCheckingDB2Status(true);
       setError(null);
       const response = await axios.get(
-        `${api}/w9/status-db2/?provider_no=${user?.provider_no}`
+        `${api}/w9/status-db2/?provider_no=${currentProviderNo}`
       );
       if (response.data) {
         setDb2W9Status(response.data.status);
@@ -42,7 +44,12 @@ const W9FromSubmission = ({ showW9Form, setShowW9Form }) => {
 
   useEffect(() => {
     if (showW9Form) {
-      fetchUserW9StatusFromDB2();
+      if (!skipDb2Check) {
+        fetchUserW9StatusFromDB2();
+      } else {
+        setIsCheckingDB2Status(false);
+        setDb2W9Status("");
+      }
       fetchUserW9Status();
     }
   }, [showW9Form]);
@@ -51,7 +58,8 @@ const W9FromSubmission = ({ showW9Form, setShowW9Form }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(`${api}/w9/status/${user.id}/`);
+      const pnIdParam = effectiveProvider?.id ? `?provider_number_id=${effectiveProvider.id}` : '';
+      const response = await axios.get(`${api}/w9/status/${user.id}/${pnIdParam}`);
       if (response.data) {
         setStatus(response.data.status || "not_submitted");
         setFileURL(response.data.file_url || "");
@@ -87,6 +95,9 @@ const W9FromSubmission = ({ showW9Form, setShowW9Form }) => {
 
     const formData = new FormData();
     formData.append("user_id", user.id);
+    if (effectiveProvider?.id) {
+      formData.append("provider_number_id", effectiveProvider.id);
+    }
     formData.append("file", file);
 
     try {

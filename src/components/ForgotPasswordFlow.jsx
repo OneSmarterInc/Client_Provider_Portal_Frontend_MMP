@@ -106,7 +106,22 @@ const ForgotPasswordFlow = () => {
     setLoading(false);
   };
 
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()\-_=+{};:,<.>]).{8,}$/;
+
+  const passwordChecks = [
+    { label: "At least 8 characters", met: newPassword.length >= 8 },
+    { label: "One uppercase letter", met: /[A-Z]/.test(newPassword) },
+    { label: "One lowercase letter", met: /[a-z]/.test(newPassword) },
+    { label: "One number", met: /\d/.test(newPassword) },
+    { label: "One special character", met: /[@$!%*?&#^()\-_=+{};:,<.>]/.test(newPassword) },
+  ];
+
   const handleResetPassword = async () => {
+    if (!passwordRegex.test(newPassword)) {
+      setError("Password must contain at least 8 characters, one uppercase, one lowercase, one number and one special character");
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -330,6 +345,17 @@ const ForgotPasswordFlow = () => {
                   )}
                 </button>
               </div>
+              {/* Password requirements checklist */}
+              {newPassword && (
+                <div className="mt-2 space-y-1">
+                  {passwordChecks.map((check, i) => (
+                    <p key={i} className={`text-xs flex items-center gap-1 ${check.met ? "text-green-600" : "text-gray-400"}`}>
+                      {check.met ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                      {check.label}
+                    </p>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
@@ -362,7 +388,7 @@ const ForgotPasswordFlow = () => {
 
             <button
               onClick={handleResetPassword}
-              disabled={!newPassword || !confirmPassword || loading}
+              disabled={!newPassword || !confirmPassword || !passwordRegex.test(newPassword) || newPassword !== confirmPassword || loading}
               className="w-full bg-[#0486A5] text-white py-3 px-4 rounded-lg hover:bg-[#036d88] disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
             >
               {loading ? "Resetting Password..." : "Reset Password"}

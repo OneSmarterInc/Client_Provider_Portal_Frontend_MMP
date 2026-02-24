@@ -24,6 +24,7 @@ const NewProviderRegister = () => {
   const [w9Form, setW9Form] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   //  New screen states
   const [step, setStep] = useState("form"); // form → preview → success
@@ -60,6 +61,7 @@ const NewProviderRegister = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage("");
+    setIsSubmitting(true);
 
     try {
       const sendData = new FormData();
@@ -100,6 +102,8 @@ const NewProviderRegister = () => {
       setErrorMessage(
         "Network error. Please check your connection and try again."
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -340,9 +344,14 @@ const NewProviderRegister = () => {
 
                 <button
                   onClick={handleSubmit}
-                  className="w-1/2 border-2 border-green-600 text-green-600 font-semibold py-2 rounded-lg hover:bg-green-600 hover:text-white"
+                  disabled={isSubmitting}
+                  className={`w-1/2 border-2 font-semibold py-2 rounded-lg transition ${
+                    isSubmitting
+                      ? "border-gray-400 text-gray-400 cursor-not-allowed"
+                      : "border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                  }`}
                 >
-                  Submit
+                  {isSubmitting ? "Submitting..." : "Submit"}
                 </button>
               </div>
             </div>

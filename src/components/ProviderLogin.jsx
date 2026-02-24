@@ -40,14 +40,26 @@ const ProviderLogin = () => {
 
   useEffect(() => {
     fetchIpAddress();
+
     setFormData((prev) => ({
       ...prev,
       browser_info: navigator.userAgent,
     }));
 
     const token = sessionStorage.getItem("verificationToken");
-    if (token) {
+    const storedEmail = sessionStorage.getItem("otpEmail");
+
+    if (token && storedEmail) {
+      setVerificationToken(token);
+      setFormData((prev) => ({
+        ...prev,
+        email: storedEmail,
+      }));
       setStep("otp");
+    } else {
+      sessionStorage.removeItem("verificationToken");
+      sessionStorage.removeItem("otpEmail");
+      setStep("login");
     }
   }, []);
 
@@ -87,12 +99,15 @@ const ProviderLogin = () => {
 
       if (response.data.verification_token) {
         setVerificationToken(response.data.verification_token);
+
         sessionStorage.setItem(
           "verificationToken",
           response.data.verification_token
         );
+
+        sessionStorage.setItem("otpEmail", formData.email);
+
         setStep("otp");
-        toast.success("OTP sent to your registered email.");
       } else {
         toast.error("Failed to send OTP.");
       }
@@ -122,8 +137,16 @@ const ProviderLogin = () => {
       });
 
       if (response.data.token) {
+        console.log(response)
+        // Enrich user data with active provider info
+        const userData = response.data.user;
+        const pns = userData.provider_numbers || [];
+        const primary = pns.find((p) => p.is_primary) || pns[0] || null;
+        userData.active_provider_no = primary?.provider_no || userData.provider_no || "";
+        userData.active_provider_id = primary?.id || null;
+
         localStorage.setItem("authToken", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.user));
+        localStorage.setItem("user", JSON.stringify(userData));
 
         toast.success("Login successful!");
 
@@ -174,9 +197,8 @@ const ProviderLogin = () => {
             Registered Email<span className="text-red-600">*</span>
           </label>
           <div
-            className={`flex flex-row bg-white border-2 rounded justify-between h-10 p-2 ${
-              errors.email ? "border-red-500" : "border-gray-300"
-            }`}
+            className={`flex flex-row bg-white border-2 rounded justify-between h-10 p-2 ${errors.email ? "border-red-500" : "border-gray-300"
+              }`}
           >
             <input
               className="border-0 w-full outline-none text-sm"
@@ -202,9 +224,8 @@ const ProviderLogin = () => {
               Password<span className="text-red-600">*</span>
             </label>
             <div
-              className={`flex flex-row bg-white border-2 rounded justify-between h-10 p-2 ${
-                errors.password ? "border-red-500" : "border-gray-300"
-              }`}
+              className={`flex flex-row bg-white border-2 rounded justify-between h-10 p-2 ${errors.password ? "border-red-500" : "border-gray-300"
+                }`}
             >
               <input
                 className="border-0 w-full outline-none text-sm"
@@ -268,6 +289,22 @@ const ProviderLogin = () => {
           >
             {isLoading ? "Verifying..." : "Verify OTP"}
           </button>
+        )}
+
+        {/* Forgot Password Link */}
+        {step === "login" && (
+          <div className="text-center -mt-2">
+            <a
+              href="/forgot-password"
+              className="text-sm text-[#0486A5] hover:underline font-medium"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate("/forgot-password");
+              }}
+            >
+              Forgot Password?
+            </a>
+          </div>
         )}
 
         {/* Register Link */}

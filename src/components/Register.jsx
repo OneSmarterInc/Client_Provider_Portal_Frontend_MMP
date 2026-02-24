@@ -1,7 +1,7 @@
 import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import backgroundImage from "../assets/image.png";
-import { Edit, Phone, AtSign, Check, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Edit, Phone, AtSign, Check, Eye, EyeOff, Loader2, Plus, Trash2 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -63,8 +63,13 @@ const InputField = ({
 const Register = () => {
   const { api } = useContext(MyContext);
   const navigate = useNavigate();
+
+  // Multi-provider state
+  const [providerEntries, setProviderEntries] = useState([
+    { provider_no: "", validated: false, validating: false },
+  ]);
+
   const [formData, setFormData] = useState({
-    provider_no: "",
     email: "",
     phone_no: "",
     password: "",
@@ -74,15 +79,15 @@ const Register = () => {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otp, setOtp] = useState("");
   const [verificationToken, setVerificationToken] = useState("");
-
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
   const [errors, setErrors] = useState({});
-  const [isProviderValidated, setIsProviderValidated] = useState(false);
-  const [isValidating, setIsValidating] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
-    useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(null);
+
+  const allProvidersValidated = providerEntries.length > 0 && providerEntries.every((e) => e.validated);
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -92,14 +97,65 @@ const Register = () => {
     }
   };
 
-  const validateProviderFields = () => {
-    const newErrors = {};
-    if (!formData.provider_no.trim()) {
-      newErrors.provider_no = "Provider number is required";
+  const handleProviderChange = (index, value) => {
+    const updated = [...providerEntries];
+    updated[index].provider_no = value;
+    updated[index].validated = false;
+    setProviderEntries(updated);
+  };
+
+  const addProviderEntry = () => {
+    setProviderEntries([...providerEntries, { provider_no: "", validated: false, validating: false }]);
+  };
+
+  const removeProviderEntry = (index) => {
+    if (providerEntries.length <= 1) return;
+    setShowRemoveConfirm(index);
+  };
+
+  const confirmRemoveProvider = () => {
+    setProviderEntries(providerEntries.filter((_, i) => i !== showRemoveConfirm));
+    setShowRemoveConfirm(null);
+  };
+
+  const handleValidateProvider = async (index) => {
+    const entry = providerEntries[index];
+    if (!entry.provider_no.trim()) {
+      toast.error("Provider number is required");
+      return;
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const updated = [...providerEntries];
+    updated[index].validating = true;
+    setProviderEntries(updated);
+
+    try {
+      const response = await axios.get(`${api}/check_provno_exists_for_login/`, {
+        params: { provider_no: entry.provider_no },
+      });
+
+      const updatedAfter = [...providerEntries];
+      updatedAfter[index].validating = false;
+
+      if (response.data.is_exist) {
+        if (response.data.is_already_registered) {
+          updatedAfter[index].validated = false;
+          toast.error(`Provider ${entry.provider_no} is already registered under another account.`);
+        } else {
+          updatedAfter[index].validated = true;
+          toast.success(`Provider ${entry.provider_no} validated!`);
+        }
+      } else {
+        updatedAfter[index].validated = false;
+        setShowRegisterModal(true);
+      }
+      setProviderEntries(updatedAfter);
+    } catch (error) {
+      const updatedAfter = [...providerEntries];
+      updatedAfter[index].validating = false;
+      setProviderEntries(updatedAfter);
+      toast.error("Something went wrong while validating.");
+    }
   };
 
   const validateForm = () => {
@@ -119,8 +175,15 @@ const Register = () => {
 
     if (!formData.password) {
       newErrors.password = "Password is required";
-    } else if (formData.password.length < 3) {
-      newErrors.password = "Password must be at least 3 characters";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
+    } else if (
+      !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()\-_=+{};:,<.>]).{8,}$/.test(
+        formData.password
+      )
+    ) {
+      newErrors.password =
+        "Password must contain uppercase, lowercase, number and special character";
     }
 
     if (!formData.confirm_password) {
@@ -135,81 +198,56 @@ const Register = () => {
 
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
-  const handleValidate = async () => {
-    if (!validateProviderFields()) return;
+  const handleRegister = async () => {
+    if (!validateForm()) return;
 
-    setIsValidating(true);
+    setIsRegistering(true);
     try {
-      const response = await axios.get(
-        `${api}/check_provno_exists_for_login/`,
-        {
-          params: { provider_no: formData.provider_no },
-        }
-      );
+      const provider_numbers = providerEntries.map((e) => e.provider_no);
+      const payload = {
+        provider_no: provider_numbers[0] || "",
+        provider_numbers,
+        email: formData.email,
+        phone_no: formData.phone_no,
+        password: formData.password,
+        confirm_password: formData.confirm_password,
+      };
 
-      if (response.data.is_exist) {
-        toast.success("Provider validated successfully!");
-        setIsProviderValidated(true);
-      } else {
-        setShowRegisterModal(true); // ✅ Open modal instead of toast
-        setIsProviderValidated(false);
-      }
+      const response = await axios.post(`${api}/auth/send-register-otp/`, payload);
+
+      setVerificationToken(response.data.verification_token);
+      setShowOtpModal(true);
+      toast.success("OTP sent to your email");
     } catch (error) {
-      console.error("Validation Error:", error);
-      toast.error("Something went wrong while validating.");
-      setIsProviderValidated(false);
+      toast.error(error.response?.data?.error || "Failed to send OTP");
     } finally {
-      setIsValidating(false);
+      setIsRegistering(false);
     }
   };
 
- const handleRegister = async () => {
-  if (!validateForm()) return;
+  const handleVerifyOtp = async () => {
+    setIsVerifyingOtp(true);
+    try {
+      const provider_numbers = providerEntries.map((e) => e.provider_no);
+      const payload = {
+        ...formData,
+        provider_no: provider_numbers[0] || "",
+        provider_numbers,
+        otp,
+        verification_token: verificationToken,
+      };
 
-  setIsRegistering(true);
-  try {
-    const payload = {
-      provider_no: formData.provider_no,
-      email: formData.email,
-      phone_no: formData.phone_no,
-      password: formData.password,
-      confirm_password: formData.confirm_password,
-    };
+      await axios.post(`${api}/auth/verify-register-otp/`, payload);
 
-    const response = await axios.post(
-      `${api}/auth/send-register-otp/`,
-      payload
-    );
-
-    setVerificationToken(response.data.verification_token);
-    setShowOtpModal(true);
-    toast.success("OTP sent to your email");
-  } catch (error) {
-    toast.error("Failed to send OTP");
-  } finally {
-    setIsRegistering(false);
-  }
-};
-
-const handleVerifyOtp = async () => {
-  try {
-    const payload = {
-      ...formData,
-      otp,
-      verification_token: verificationToken,
-    };
-
-    await axios.post(`${api}/auth/verify-register-otp/`, payload);
-
-    toast.success("Registration successful!");
-    setShowOtpModal(false);
-    navigate("/login");
-  } catch (error) {
-    toast.error("Invalid or expired OTP");
-  }
-};
-
-
+      toast.success("Registration successful!");
+      setShowOtpModal(false);
+      navigate("/login");
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Invalid or expired OTP");
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
 
   const togglePasswordVisibility = () => {
     setIsPasswordVisible(!isPasswordVisible);
@@ -271,51 +309,75 @@ const handleVerifyOtp = async () => {
 
         {/* Input Fields */}
         <div className="flex flex-col gap-6 justify-center items-center mx-auto w-full max-w-4xl">
-          <div className="flex items-end flex-row gap-6 w-full">
-            <InputField
-              label="provider_no"
-              name="NPI"
-              placeholder="Enter Provider No"
-              icon={Edit}
-              value={formData.provider_no}
-              onChange={handleChange}
-              error={errors.provider_no}
-              disabled={isProviderValidated}
-            />
-            {/* <InputField
-              label="provider_sequence"
-              name="Provider Sequence"
-              placeholder="Enter Provider Sequence"
-              icon={Edit}
-              value={formData.provider_sequence}
-              onChange={handleChange}
-              error={errors.provider_sequence}
-              disabled={isProviderValidated}
-            /> */}
-            {/* Validate Button */}
-            <div className="flex justify-center w-full">
+          {/* Provider Numbers Section */}
+          {providerEntries.map((entry, index) => (
+            <div key={index} className="flex items-end flex-row gap-4 w-full">
+              <div className="flex flex-col w-full">
+                <label className="text-gray-500 text-sm">
+                  NPI {providerEntries.length > 1 ? `#${index + 1}` : ""}{" "}
+                  <span className="text-red-600">*</span>
+                </label>
+                <div
+                  className={`flex flex-row bg-white border-2 rounded justify-between h-10 p-2 ${
+                    entry.validated ? "opacity-50 border-green-400" : "border-gray-300"
+                  }`}
+                >
+                  <input
+                    className="border-0 w-full outline-none"
+                    type="text"
+                    placeholder="Enter Provider No"
+                    value={entry.provider_no}
+                    onChange={(e) => handleProviderChange(index, e.target.value)}
+                    disabled={entry.validated}
+                  />
+                  <div className="items-center justify-center pt-1 border-l-2 p-2">
+                    <Edit className="w-4 h-4 text-[#0486A5] text-center" />
+                  </div>
+                </div>
+              </div>
+
               <button
-                className={`flex items-center justify-center w-48 py-2 px-4 rounded-lg ${
-                  isProviderValidated
-                    ? "bg-gray-400"
-                    : "bg-[#0486A5] hover:bg-[#047B95]"
-                } text-white`}
-                onClick={handleValidate}
-                disabled={isProviderValidated || isValidating}
+                className={`flex items-center justify-center w-40 py-2 px-4 rounded-lg ${
+                  entry.validated
+                    ? "bg-green-500 text-white"
+                    : "bg-[#0486A5] hover:bg-[#047B95] text-white"
+                }`}
+                onClick={() => handleValidateProvider(index)}
+                disabled={entry.validated || entry.validating}
               >
-                {isValidating ? (
+                {entry.validating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Validating...
                   </>
-                ) : isProviderValidated ? (
-                  "Validated"
+                ) : entry.validated ? (
+                  <>
+                    <Check className="mr-1 h-4 w-4" /> Validated
+                  </>
                 ) : (
-                  "Validate Provider"
+                  "Validate"
                 )}
               </button>
+
+              {providerEntries.length > 1 && (
+                <button
+                  onClick={() => removeProviderEntry(index)}
+                  className="text-red-500 hover:text-red-700 p-2"
+                  title="Remove this provider"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
             </div>
-          </div>
+          ))}
+
+          {/* Add more providers button */}
+          <button
+            onClick={addProviderEntry}
+            className="flex items-center gap-2 text-[#0486A5] hover:text-[#047B95] text-sm font-medium"
+          >
+            <Plus className="w-4 h-4" /> Add another provider number
+          </button>
 
           {/* Other fields */}
           <div className="flex flex-row gap-6 w-full">
@@ -324,7 +386,7 @@ const handleVerifyOtp = async () => {
               name="Email"
               placeholder="Ex: gram@yesenia.net"
               icon={AtSign}
-              disabled={!isProviderValidated}
+              disabled={!allProvidersValidated}
               value={formData.email}
               onChange={handleChange}
               error={errors.email}
@@ -334,7 +396,7 @@ const handleVerifyOtp = async () => {
               name="Phone No."
               placeholder="Enter Phone Number"
               icon={Phone}
-              disabled={!isProviderValidated}
+              disabled={!allProvidersValidated}
               value={formData.phone_no}
               onChange={handleChange}
               error={errors.phone_no}
@@ -344,10 +406,10 @@ const handleVerifyOtp = async () => {
           <div className="flex flex-row gap-6 w-full">
             <InputField
               label="password"
-              name="Password"
-              placeholder="Enter Password (min 3 chars)"
+              name="Password (must contain min 8 char, one uppercase, one lowercase, one number and one special character"
+              placeholder="Enter Password (min 8 chars)"
               icon={Eye}
-              disabled={!isProviderValidated}
+              disabled={!allProvidersValidated}
               value={formData.password}
               onChange={handleChange}
               error={errors.password}
@@ -361,7 +423,7 @@ const handleVerifyOtp = async () => {
               name="Confirm Password"
               placeholder="Confirm Password"
               icon={Check}
-              disabled={!isProviderValidated}
+              disabled={!allProvidersValidated}
               value={formData.confirm_password}
               onChange={handleChange}
               error={errors.confirm_password}
@@ -377,12 +439,12 @@ const handleVerifyOtp = async () => {
         <div className="flex justify-center mt-4">
           <button
             className={`flex items-center justify-center py-2 px-8 text-white rounded-lg ${
-              isProviderValidated
+              allProvidersValidated
                 ? "bg-[#0486A5] hover:bg-[#047B95]"
                 : "bg-gray-400"
             }`}
             onClick={handleRegister}
-            disabled={!isProviderValidated || isRegistering}
+            disabled={!allProvidersValidated || isRegistering}
           >
             {isRegistering ? (
               <>
@@ -426,38 +488,68 @@ const handleVerifyOtp = async () => {
         </div>
       )}
 
+      {showRemoveConfirm !== null && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-[90%] max-w-sm shadow-lg">
+            <h2 className="text-lg font-semibold mb-3">Remove Provider</h2>
+            <p className="text-sm text-gray-600 mb-5">
+              Are you sure you want to remove provider{" "}
+              <strong>{providerEntries[showRemoveConfirm]?.provider_no || `#${showRemoveConfirm + 1}`}</strong>?
+            </p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowRemoveConfirm(null)}
+                className="text-gray-700 font-semibold hover:text-gray-900"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmRemoveProvider}
+                className="bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-lg"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showOtpModal && (
-  <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
-    <div className="bg-white rounded-2xl p-6 w-[90%] max-w-md shadow-lg">
-      <h2 className="text-xl font-semibold mb-3">Enter OTP</h2>
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-[90%] max-w-md shadow-lg">
+            <h2 className="text-xl font-semibold mb-3">Enter OTP</h2>
 
-      <input
-        type="text"
-        placeholder="Enter 6 digit OTP"
-        className="w-full border p-2 rounded mb-4"
-        value={otp}
-        onChange={(e) => setOtp(e.target.value)}
-      />
+            <input
+              type="text"
+              placeholder="Enter 6 digit OTP"
+              className="w-full border p-2 rounded mb-4"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+            />
 
-      <div className="flex justify-end space-x-4">
-        <button
-          onClick={() => setShowOtpModal(false)}
-          className="text-gray-700 font-semibold hover:text-gray-900"
-        >
-          Cancel
-        </button>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowOtpModal(false)}
+                className="text-gray-700 font-semibold hover:text-gray-900"
+              >
+                Cancel
+              </button>
 
-        <button
-          onClick={handleVerifyOtp}
-          className="bg-[#0486A5] hover:bg-[#047B95] text-white font-semibold px-4 py-2 rounded-lg"
-        >
-          Verify
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
+              <button
+                onClick={handleVerifyOtp}
+                disabled={isVerifyingOtp}
+                className={`text-white font-semibold px-4 py-2 rounded-lg ${
+                  isVerifyingOtp
+                    ? "bg-[#0486A5]/60 cursor-not-allowed"
+                    : "bg-[#0486A5] hover:bg-[#047B95]"
+                }`}
+              >
+                {isVerifyingOtp ? "Verifying..." : "Verify"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

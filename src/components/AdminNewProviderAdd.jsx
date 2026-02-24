@@ -19,6 +19,7 @@ export default function AdminNewProviderAdd() {
 
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [selectedApproveId, setSelectedApproveId] = useState(null);
+  const [activeTab, setActiveTab] = useState("requests"); // "requests" | "approved"
 
   const admin_token = localStorage.getItem("authToken");
 
@@ -92,8 +93,8 @@ export default function AdminNewProviderAdd() {
   };
 
   // Confirm Approve
-  const confirmApprove = () => {
-    handleAction(selectedApproveId, "approved");
+  const confirmApprove = async () => {
+    await handleAction(selectedApproveId, "approved");
     setShowApproveModal(false);
   };
 
@@ -105,13 +106,13 @@ export default function AdminNewProviderAdd() {
   };
 
   // Confirm Decline
-  const confirmDecline = () => {
+  const confirmDecline = async () => {
     if (!declineRemark.trim()) {
       alert("Please enter a decline remark.");
       return;
     }
 
-    handleAction(selectedDeclineId, "declined", declineRemark);
+    await handleAction(selectedDeclineId, "declined", declineRemark);
     setShowDeclineModal(false);
   };
 
@@ -124,23 +125,67 @@ export default function AdminNewProviderAdd() {
       style={{ backgroundImage: `url(${backgroundImage})` }}
       className="min-h-screen bg-gray-100 p-6 text-[#0486A5]"
     >
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-start">
-          New Provider Registration Requests
-        </h1>
-        <button
-          onClick={() => navigate("/admin")}
-          className="p-1 text-sm bg-cyan-600 text-white px-2 rounded-md hover:bg-cyan-700"
-        >
-          Back to admin
-        </button>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <h1 className="text-2xl font-semibold text-start">
+            New Provider Registration Requests
+          </h1>
+          {/* Tabs */}
+          <div className="flex gap-1 bg-gray-200 rounded-full p-1">
+            <button
+              onClick={() => setActiveTab("requests")}
+              className={`px-4 py-1 text-xs font-medium rounded-full transition-colors ${
+                activeTab === "requests"
+                  ? "bg-cyan-600 text-white shadow-sm"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              Pending Requests
+              {users?.filter((u) => u.new_provider_status === "pending").length > 0 && (
+                <span className="ml-1 bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5">
+                  {users.filter((u) => u.new_provider_status === "pending").length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("approved")}
+              className={`px-4 py-1 text-xs font-medium rounded-full transition-colors ${
+                activeTab === "approved"
+                  ? "bg-cyan-600 text-white shadow-sm"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              Approved / Declined
+            </button>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => fetchPending()}
+            className="p-1 text-sm text-teal-500 hover:text-teal-700 px-2"
+          >
+            <i className="fa-solid fa-clock-rotate-left mr-1"></i> Refresh
+          </button>
+          <button
+            onClick={() => navigate("/admin")}
+            className="p-1 text-sm bg-cyan-600 text-white px-2 rounded-md hover:bg-cyan-700"
+          >
+            Back to admin
+          </button>
+        </div>
       </div>
 
       {loading ? (
         <div className="text-center text-lg font-medium">Loading...</div>
-      ) : users.length === 0 ? (
+      ) : users.filter((item) => {
+          if (activeTab === "requests") return item.new_provider_status === "pending";
+          if (activeTab === "approved") return item.new_provider_status === "approved" || item.new_provider_status === "declined";
+          return true;
+        }).length === 0 ? (
         <div className="text-center text-lg font-medium">
-          No new providers request found for registration.
+          {activeTab === "requests"
+            ? "No pending provider registration requests."
+            : "No approved/declined provider requests found."}
         </div>
       ) : (
         <div className="overflow-x-auto shadow-sm border border-gray-300 bg-white">
@@ -158,7 +203,11 @@ export default function AdminNewProviderAdd() {
             </thead>
 
             <tbody>
-              {users.map((item) => (
+              {users.filter((item) => {
+                if (activeTab === "requests") return item.new_provider_status === "pending";
+                if (activeTab === "approved") return item.new_provider_status === "approved" || item.new_provider_status === "declined";
+                return true;
+              }).map((item) => (
                 <tr
                   key={item.id}
                   className="border-b border-gray-200 hover:bg-gray-50"
@@ -259,16 +308,22 @@ export default function AdminNewProviderAdd() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowApproveModal(false)}
-                className="px-4 py-2 rounded-xl border border-gray-400 text-gray-600 hover:bg-gray-200"
+                disabled={actionLoading.approve !== null}
+                className="px-4 py-2 rounded-xl border border-gray-400 text-gray-600 hover:bg-gray-200 disabled:opacity-50"
               >
                 Cancel
               </button>
 
               <button
                 onClick={confirmApprove}
-                className="px-4 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700"
+                disabled={actionLoading.approve !== null}
+                className={`px-4 py-2 rounded-xl text-white ${
+                  actionLoading.approve !== null
+                    ? "bg-green-400 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-700"
+                }`}
               >
-                Confirm Approve
+                {actionLoading.approve !== null ? "Approving..." : "Confirm Approve"}
               </button>
             </div>
           </div>
@@ -293,16 +348,22 @@ export default function AdminNewProviderAdd() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowDeclineModal(false)}
-                className="px-4 py-2 rounded-xl border border-gray-400 text-gray-600 hover:bg-gray-200"
+                disabled={actionLoading.decline !== null}
+                className="px-4 py-2 rounded-xl border border-gray-400 text-gray-600 hover:bg-gray-200 disabled:opacity-50"
               >
                 Cancel
               </button>
 
               <button
                 onClick={confirmDecline}
-                className="px-4 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600"
+                disabled={actionLoading.decline !== null}
+                className={`px-4 py-2 rounded-xl text-white ${
+                  actionLoading.decline !== null
+                    ? "bg-red-300 cursor-not-allowed"
+                    : "bg-red-500 hover:bg-red-600"
+                }`}
               >
-                Confirm Decline
+                {actionLoading.decline !== null ? "Declining..." : "Confirm Decline"}
               </button>
             </div>
           </div>

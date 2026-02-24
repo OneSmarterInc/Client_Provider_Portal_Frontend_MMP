@@ -14,10 +14,10 @@ const TotalClaimsFound = ({
   setActiveStatusFilter,
   setActiveMonthName,
 }) => {
-  const { api, isEOBOpen, setIsEOBOpen } = useContext(MyContext);
+  const { api, isEOBOpen, setIsEOBOpen, activeProvider } = useContext(MyContext);
   const [dataFromCLMHP, setDataFromCLMHP] = useState();
   const user = JSON.parse(localStorage.getItem("user"));
-  const provider_no = user?.provider_no;
+  const provider_no = activeProvider?.provider_no || user?.provider_no;
 
   const [expandedRow, setExpandedRow] = useState(null);
   const [expandedRows, setExpandedRows] = useState({});
@@ -37,7 +37,7 @@ const TotalClaimsFound = ({
   useEffect(() => {
     fetchCHCLMApiData();
     fetchOriginalData();
-  }, []);
+  }, [activeProvider]);
 
   const fetchCHCLMApiData = async () => {
     // Don't fetch if dates aren't set

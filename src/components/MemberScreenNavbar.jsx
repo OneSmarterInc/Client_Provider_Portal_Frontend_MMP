@@ -1,5 +1,7 @@
-import React, { useContext, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ProviderSwitcher from "./ProviderSwitcher";
+import ProviderSettings from "./ProviderSettings";
 
 const MemberScreenNavbar = ({
   setIsOpenList,
@@ -10,6 +12,7 @@ const MemberScreenNavbar = ({
 }) => {
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
+  const [showProviderSettings, setShowProviderSettings] = useState(false);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -41,6 +44,7 @@ const MemberScreenNavbar = ({
             <h3 className="font-inter text-sm text-black-700">
               Welcome, {user?.email}!
             </h3>
+            <ProviderSwitcher />
             <button onClick={() => navigate("/watchlist")}>Watchlist</button>
             <img
               src="/images/Header/img-11.png"
@@ -54,24 +58,27 @@ const MemberScreenNavbar = ({
             {isOpenList && (
               <div
                 ref={dropdownRef}
-                className="absolute right-4 mt-32 w-42 bg-white border border-gray-200 shadow-lg rounded-md"
+                className="absolute right-4 mt-44 w-48 bg-white border border-gray-200 shadow-lg rounded-md"
               >
                 <div className="flex flex-col">
                   <button
-                    className="text-[15px] px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => setShowW9Form(true)}
-                  >
-                    W9 Form
-                  </button>
-                  <button
-                    className="text-[15px] px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                    className="text-[15px] px-4 py-2 hover:bg-gray-100 cursor-pointer text-left"
                     onClick={() => setShowMyProfile(true)}
                   >
                     My Profile
                   </button>
                   <button
+                    className="text-[15px] px-4 py-2 hover:bg-gray-100 cursor-pointer text-left"
+                    onClick={() => {
+                      setShowProviderSettings(true);
+                      setIsOpenList(false);
+                    }}
+                  >
+                    Manage Providers
+                  </button>
+                  <button
                     onClick={handleLogout}
-                    className="text-[15px] px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                    className="text-[15px] px-4 py-2 hover:bg-gray-100 cursor-pointer text-left"
                   >
                     Logout
                   </button>
@@ -90,6 +97,11 @@ const MemberScreenNavbar = ({
           </div>
         </div>
       </div>
+
+      <ProviderSettings
+        isOpen={showProviderSettings}
+        onClose={() => setShowProviderSettings(false)}
+      />
     </div>
   );
 };
