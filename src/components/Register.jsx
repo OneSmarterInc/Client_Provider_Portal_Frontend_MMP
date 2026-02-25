@@ -124,6 +124,10 @@ const Register = () => {
       toast.error("Provider number is required");
       return;
     }
+    if (entry.provider_no.trim().length > 9) {
+      toast.error("Provider number must be 9 characters or less");
+      return;
+    }
 
     const updated = [...providerEntries];
     updated[index].validating = true;

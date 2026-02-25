@@ -14,7 +14,7 @@ const AdminValidations = () => {
   const admin = JSON.parse(localStorage.getItem("user"));
 
   // --- Tab state ---
-  const [mainTab, setMainTab] = useState("w9"); // "w9" | "providers"
+  const [mainTab, setMainTab] = useState("providers"); // "w9" | "providers"
   const [subTab, setSubTab] = useState("pending"); // "pending" | "history"
 
   const handleMainTabChange = (tab) => {
@@ -264,10 +264,6 @@ const AdminValidations = () => {
   };
 
   const confirmNewProviderDecline = async () => {
-    if (!newProviderDeclineRemark.trim()) {
-      alert("Please enter a decline remark.");
-      return;
-    }
     await handleNewProviderAction(selectedNewProviderDeclineId, "declined", newProviderDeclineRemark);
     setShowNewProviderDeclineModal(false);
   };
@@ -286,6 +282,10 @@ const AdminValidations = () => {
       approved: "bg-green-100 text-green-800",
       declined: "bg-red-100 text-red-800",
       in_progress: "bg-yellow-100 text-yellow-800",
+      pending: "bg-yellow-100 text-yellow-800",
+      W9_form_uploaded: "bg-blue-100 text-blue-800",
+      W9_form_not_uploaded: "bg-gray-100 text-gray-800",
+      not_submitted: "bg-gray-100 text-gray-800",
       default: "bg-gray-100 text-gray-800",
     };
 
@@ -293,6 +293,10 @@ const AdminValidations = () => {
       approved: "Approved",
       declined: "Declined",
       in_progress: "In Progress",
+      pending: "Pending",
+      W9_form_uploaded: "W9 Form Uploaded",
+      W9_form_not_uploaded: "Not Submitted",
+      not_submitted: "Not Submitted",
       default: "Not Submitted",
     };
 
@@ -390,6 +394,21 @@ const AdminValidations = () => {
               {/* Main Tabs */}
               <div className="flex gap-1 bg-gray-200 rounded-full p-1">
                 <button
+                  onClick={() => handleMainTabChange("providers")}
+                  className={`px-4 py-1 text-xs font-medium rounded-full transition-colors ${
+                    mainTab === "providers"
+                      ? "bg-cyan-600 text-white shadow-sm"
+                      : "text-gray-600 hover:text-gray-800"
+                  }`}
+                >
+                  Provider Requests
+                  {(providerRequests.filter((r) => r.status === "pending").length + newProviderRequests.filter((u) => u.new_provider_status === "pending").length) > 0 && (
+                    <span className="ml-1 bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5">
+                      {providerRequests.filter((r) => r.status === "pending").length + newProviderRequests.filter((u) => u.new_provider_status === "pending").length}
+                    </span>
+                  )}
+                </button>
+                <button
                   onClick={() => handleMainTabChange("w9")}
                   className={`px-4 py-1 text-xs font-medium rounded-full transition-colors ${
                     mainTab === "w9"
@@ -401,21 +420,6 @@ const AdminValidations = () => {
                   {users?.filter((u) => u.status === "in_progress").length > 0 && (
                     <span className="ml-1 bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5">
                       {users.filter((u) => u.status === "in_progress").length}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => handleMainTabChange("providers")}
-                  className={`px-4 py-1 text-xs font-medium rounded-full transition-colors ${
-                    mainTab === "providers"
-                      ? "bg-cyan-600 text-white shadow-sm"
-                      : "text-gray-600 hover:text-gray-800"
-                  }`}
-                >
-                  Provider Requests
-                  {(providerRequests.length + newProviderRequests.filter((u) => u.new_provider_status === "pending").length) > 0 && (
-                    <span className="ml-1 bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5">
-                      {providerRequests.length + newProviderRequests.filter((u) => u.new_provider_status === "pending").length}
                     </span>
                   )}
                 </button>
@@ -778,9 +782,9 @@ const AdminValidations = () => {
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-3 px-1">
                   <h3 className="text-lg font-semibold text-gray-800">Provider Number Requests</h3>
-                  {providerRequests.length > 0 && (
+                  {providerRequests.filter((r) => r.status === "pending").length > 0 && (
                     <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                      {providerRequests.length}
+                      {providerRequests.filter((r) => r.status === "pending").length}
                     </span>
                   )}
                 </div>
@@ -802,14 +806,14 @@ const AdminValidations = () => {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {providerRequests.length === 0 ? (
+                          {providerRequests.filter((r) => r.status === "pending").length === 0 ? (
                             <tr>
                               <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
                                 No pending provider number requests
                               </td>
                             </tr>
                           ) : (
-                            providerRequests.map((req) => (
+                            providerRequests.filter((r) => r.status === "pending").map((req) => (
                               <tr key={req.id} className="hover:bg-gray-50 transition-colors">
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{req.user_email}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{req.provider_no}</td>
@@ -965,89 +969,151 @@ const AdminValidations = () => {
             </>
           ) : (
             /* --- Provider Requests: Approved / Declined sub-tab --- */
-            <div>
-              <div className="flex items-center gap-2 mb-3 px-1">
-                <h3 className="text-lg font-semibold text-gray-800">New Provider Registrations — Approved / Declined</h3>
-              </div>
-              {newProviderLoading ? (
-                <div className="flex justify-center items-center h-32">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <>
+              {/* Section 1: Provider Number Requests — Approved / Declined */}
+              <div className="mb-8">
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <h3 className="text-lg font-semibold text-gray-800">Provider Number Requests — Approved / Declined</h3>
                 </div>
-              ) : (
-                <div className="bg-white shadow-sm rounded-xl overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider No.</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name & Email</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Address</th>
-                          <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">W9 Form</th>
-                          <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Decline Remark</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {newProviderRequests.filter((u) => u.new_provider_status === "approved" || u.new_provider_status === "declined").length === 0 ? (
-                          <tr>
-                            <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
-                              No approved/declined provider registrations found
-                            </td>
-                          </tr>
-                        ) : (
-                          newProviderRequests
-                            .filter((u) => u.new_provider_status === "approved" || u.new_provider_status === "declined")
-                            .map((item) => (
-                              <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-cyan-700">
-                                  #{item.PRNUM}
-                                </td>
-                                <td className="px-6 py-4 text-sm text-gray-900">
-                                  <p><strong>Name:</strong> {item.provider_name}</p>
-                                  <p><strong>Email:</strong> {item.provider_email}</p>
-                                </td>
-                                <td className="px-6 py-4 text-sm text-gray-900">
-                                  <p><strong>Address:</strong> {getFullAddress(item)}</p>
-                                  <p><strong>Title:</strong> {item?.PRTITL || "-"}</p>
-                                  <p><strong>Description:</strong> {item?.description || "-"}</p>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">
-                                  <span
-                                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      item.new_provider_status === "approved"
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-red-100 text-red-800"
-                                    }`}
-                                  >
-                                    {item.new_provider_status === "approved" ? "Approved" : "Declined"}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                  {item.w9Form_url ? (
-                                    <a
-                                      href={item.w9Form_url}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="text-blue-600 hover:text-blue-800 hover:underline"
-                                    >
-                                      Download
-                                    </a>
-                                  ) : (
-                                    <span className="text-gray-400">No File</span>
-                                  )}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                  {item?.decline_remark || "-"}
-                                </td>
-                              </tr>
-                            ))
-                        )}
-                      </tbody>
-                    </table>
+                {providerRequestsLoading ? (
+                  <div className="flex justify-center items-center h-32">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
                   </div>
+                ) : (
+                  <div className="bg-white shadow-sm rounded-xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider No.</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested At</th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {providerRequests.filter((r) => r.status === "approved" || r.status === "declined").length === 0 ? (
+                            <tr>
+                              <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
+                                No approved/declined provider number requests found
+                              </td>
+                            </tr>
+                          ) : (
+                            providerRequests
+                              .filter((r) => r.status === "approved" || r.status === "declined")
+                              .map((req) => (
+                                <tr key={req.id} className="hover:bg-gray-50 transition-colors">
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{req.user_email}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-cyan-700">#{req.provider_no}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {new Date(req.requested_at).toLocaleDateString()}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                                    <span
+                                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                        req.status === "approved"
+                                          ? "bg-green-100 text-green-800"
+                                          : "bg-red-100 text-red-800"
+                                      }`}
+                                    >
+                                      {req.status === "approved" ? "Approved" : "Declined"}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Section 2: New Provider Registrations — Approved / Declined */}
+              <div>
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <h3 className="text-lg font-semibold text-gray-800">New Provider Registrations — Approved / Declined</h3>
                 </div>
-              )}
-            </div>
+                {newProviderLoading ? (
+                  <div className="flex justify-center items-center h-32">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                  </div>
+                ) : (
+                  <div className="bg-white shadow-sm rounded-xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider No.</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name & Email</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Address</th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">W9 Form</th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Decline Remark</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {newProviderRequests.filter((u) => u.new_provider_status === "approved" || u.new_provider_status === "declined").length === 0 ? (
+                            <tr>
+                              <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                                No approved/declined provider registrations found
+                              </td>
+                            </tr>
+                          ) : (
+                            newProviderRequests
+                              .filter((u) => u.new_provider_status === "approved" || u.new_provider_status === "declined")
+                              .map((item) => (
+                                <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-cyan-700">
+                                    #{item.PRNUM}
+                                  </td>
+                                  <td className="px-6 py-4 text-sm text-gray-900">
+                                    <p><strong>Name:</strong> {item.provider_name}</p>
+                                    <p><strong>Email:</strong> {item.provider_email}</p>
+                                  </td>
+                                  <td className="px-6 py-4 text-sm text-gray-900">
+                                    <p><strong>Address:</strong> {getFullAddress(item)}</p>
+                                    <p><strong>Title:</strong> {item?.PRTITL || "-"}</p>
+                                    <p><strong>Description:</strong> {item?.description || "-"}</p>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                                    <span
+                                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                        item.new_provider_status === "approved"
+                                          ? "bg-green-100 text-green-800"
+                                          : "bg-red-100 text-red-800"
+                                      }`}
+                                    >
+                                      {item.new_provider_status === "approved" ? "Approved" : "Declined"}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                    {item.w9Form_url ? (
+                                      <a
+                                        href={item.w9Form_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                      >
+                                        Download
+                                      </a>
+                                    ) : (
+                                      <span className="text-gray-400">No File</span>
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                    {item?.decline_remark || "-"}
+                                  </td>
+                                </tr>
+                              ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
           )
         )}
       </div>{" "}

@@ -162,7 +162,7 @@ const ProviderSettings = ({ isOpen, onClose }) => {
                   {pn.status === "pending" && (
                     <span
                       className="text-[10px] bg-yellow-500 text-white px-2 py-0.5 rounded-full cursor-default"
-                      title="Provider number is added but approval is pending from admin side"
+                      title={typeof pn.id === "string" ? "New provider registration is pending admin approval" : "Provider number is added but approval is pending from admin side"}
                     >
                       Pending Approval
                     </span>
@@ -191,7 +191,7 @@ const ProviderSettings = ({ isOpen, onClose }) => {
                       Set Primary
                     </button>
                   )}
-                  {(pn.status !== "approved" || approvedProviders.length > 1) && (
+                  {typeof pn.id === "number" && (pn.status !== "approved" || approvedProviders.length > 1) && (
                     <button
                       onClick={() => openRemoveConfirm(pn.id)}
                       disabled={actionLoading === pn.id}
