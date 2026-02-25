@@ -23,8 +23,13 @@ const ProviderSwitcher = () => {
   // Don't render dropdown if user has 0 or 1 approved provider
   if (!approvedProviders || approvedProviders.length <= 1) {
     return activeProvider ? (
-      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded flex items-center gap-1">
         {activeProvider.provider_no}
+        {activeProvider.is_db2_validated === false && (
+          <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full">
+            Dummy
+          </span>
+        )}
       </span>
     ) : null;
   }
@@ -65,7 +70,14 @@ const ProviderSwitcher = () => {
                   activeProvider?.id === pn.id ? "bg-blue-50 text-[#0486A5]" : "text-gray-700"
                 }`}
               >
-                <span>{pn.provider_no}</span>
+                <span className="flex items-center gap-1">
+                  {pn.provider_no}
+                  {pn.is_db2_validated === false && (
+                    <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full">
+                      Dummy
+                    </span>
+                  )}
+                </span>
                 <span className="flex items-center gap-1">
                   {pn.is_primary && (
                     <span className="text-[10px] bg-[#0486A5] text-white px-1.5 py-0.5 rounded-full">

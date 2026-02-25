@@ -180,6 +180,14 @@ const ProviderSettings = ({ isOpen, onClose }) => {
                       Primary
                     </span>
                   )}
+                  {pn.is_db2_validated === false && (
+                    <span
+                      className="text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded-full cursor-default"
+                      title="This provider number is not present in the system (DB2). It was added via New Provider Registration."
+                    >
+                      Dummy
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   {pn.status === "approved" && !pn.is_primary && (

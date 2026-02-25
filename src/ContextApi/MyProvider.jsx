@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import axios from "axios";
 import MyContext from "./MyContext";
 
@@ -12,6 +12,7 @@ const MyProvider = ({ children }) => {
   // Provider numbers state
   const [providerNumbers, setProviderNumbers] = useState([]);
   const [activeProvider, setActiveProvider] = useState(null);
+  const initializedRef = useRef(false);
 
   // Initialize from localStorage on mount
   useEffect(() => {
@@ -30,35 +31,45 @@ const MyProvider = ({ children }) => {
         setActiveProvider(primary);
       }
     }
+    initializedRef.current = true;
   }, []);
 
-  // Fetch latest provider list from API on mount (and on page refresh)
-  useEffect(() => {
+  // Fetch latest provider list from API (enriched with DB2 data)
+  const fetchProviders = useCallback(async () => {
     const authToken = localStorage.getItem("authToken");
-    if (authToken) {
-      axios
-        .get(`${api}/auth/providers/`, {
-          headers: { Authorization: `Token ${authToken}` },
-        })
-        .then((res) => {
-          const newList = res.data;
-          setProviderNumbers(newList);
-          // Update localStorage
-          const user = JSON.parse(localStorage.getItem("user"));
-          if (user) {
-            user.provider_numbers = newList;
-            localStorage.setItem("user", JSON.stringify(user));
-          }
-          // Update active provider if needed
-          const approved = newList.filter((p) => p.status === "approved");
-          setActiveProvider((prev) => {
-            if (prev && approved.find((p) => p.id === prev.id)) return prev;
-            return approved.find((p) => p.is_primary) || approved[0] || null;
-          });
-        })
-        .catch(() => {});
+    if (!authToken) return;
+
+    try {
+      const res = await axios.get(`${api}/auth/providers/`, {
+        headers: { Authorization: `Token ${authToken}` },
+      });
+      const newList = res.data;
+      setProviderNumbers(newList);
+
+      // Update localStorage
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (user) {
+        user.provider_numbers = newList;
+        localStorage.setItem("user", JSON.stringify(user));
+      }
+
+      // Update active provider if needed
+      const approved = newList.filter((p) => p.status === "approved");
+      setActiveProvider((prev) => {
+        if (prev && approved.find((p) => p.id === prev.id)) return prev;
+        return approved.find((p) => p.is_primary) || approved[0] || null;
+      });
+    } catch {
+      // silently fail
     }
   }, [api]);
+
+  // Fetch on mount if already logged in
+  useEffect(() => {
+    if (initializedRef.current) {
+      fetchProviders();
+    }
+  }, [fetchProviders]);
 
   // Derived state: only approved providers
   const approvedProviders = useMemo(
@@ -121,6 +132,7 @@ const MyProvider = ({ children }) => {
         w9ApprovedProviders,
         switchProvider,
         updateProviderNumbers,
+        fetchProviders,
       }}
     >
       {children}
