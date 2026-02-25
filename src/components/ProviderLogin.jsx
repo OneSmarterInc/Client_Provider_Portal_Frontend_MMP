@@ -8,7 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import MyContext from "../ContextApi/MyContext";
 
 const ProviderLogin = () => {
-  const { api } = useContext(MyContext);
+  const { api, fetchProviders } = useContext(MyContext);
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -147,6 +147,9 @@ const ProviderLogin = () => {
 
         localStorage.setItem("authToken", response.data.token);
         localStorage.setItem("user", JSON.stringify(userData));
+
+        // Fetch DB2-enriched provider data before navigating
+        await fetchProviders();
 
         toast.success("Login successful!");
 
