@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import axios from "axios";
 import MyContext from "./MyContext";
 
 const MyProvider = ({ children }) => {
@@ -30,6 +31,34 @@ const MyProvider = ({ children }) => {
       }
     }
   }, []);
+
+  // Fetch latest provider list from API on mount (and on page refresh)
+  useEffect(() => {
+    const authToken = localStorage.getItem("authToken");
+    if (authToken) {
+      axios
+        .get(`${api}/auth/providers/`, {
+          headers: { Authorization: `Token ${authToken}` },
+        })
+        .then((res) => {
+          const newList = res.data;
+          setProviderNumbers(newList);
+          // Update localStorage
+          const user = JSON.parse(localStorage.getItem("user"));
+          if (user) {
+            user.provider_numbers = newList;
+            localStorage.setItem("user", JSON.stringify(user));
+          }
+          // Update active provider if needed
+          const approved = newList.filter((p) => p.status === "approved");
+          setActiveProvider((prev) => {
+            if (prev && approved.find((p) => p.id === prev.id)) return prev;
+            return approved.find((p) => p.is_primary) || approved[0] || null;
+          });
+        })
+        .catch(() => {});
+    }
+  }, [api]);
 
   // Derived state: only approved providers
   const approvedProviders = useMemo(

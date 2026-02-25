@@ -185,21 +185,24 @@ const NewProviderRegister = () => {
               {/* Addresses */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {["PRADR1", "PRADR2", "PRADR3", "PRADR4"].map(
-                  (field, index) => (
-                    <div key={field}>
-                      <label className="block mb-1 font-medium text-[#0486A5]">
-                        Address {index + 1}
-                      </label>
-                      <input
-                        type="text"
-                        name={field}
-                        value={formData[field]}
-                        onChange={handleChange}
-                        required={index + 1 === 1}
-                        className="w-full border border-gray-300 rounded-lg px-4 py-1 focus:border-[#0486A5]"
-                      />
-                    </div>
-                  )
+                  (field, index) => {
+                    const isOptional = field === "PRADR3" || field === "PRADR4";
+                    return (
+                      <div key={field}>
+                        <label className="block mb-1 font-medium text-[#0486A5]">
+                          Address {index + 1}{!isOptional && " *"}
+                        </label>
+                        <input
+                          type="text"
+                          name={field}
+                          value={formData[field]}
+                          onChange={handleChange}
+                          required={!isOptional}
+                          className="w-full border border-gray-300 rounded-lg px-4 py-1 focus:border-[#0486A5]"
+                        />
+                      </div>
+                    );
+                  }
                 )}
               </div>
 
@@ -236,27 +239,30 @@ const NewProviderRegister = () => {
 
               {/* ZIP fields */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {["PRZIP5", "PRZIP4", "PRZIP2"].map((field, index) => (
-                  <div key={field}>
-                    <label className="block mb-1 font-medium text-[#0486A5]">
-                      ZIP {index + 1}
-                    </label>
-                    <input
-                      type="text"
-                      name={field}
-                      value={formData[field]}
-                      required={index + 1 === 1}
-                      onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-1 focus:border-[#0486A5]"
-                    />
-                  </div>
-                ))}
+                {["PRZIP5", "PRZIP4", "PRZIP2"].map((field, index) => {
+                  const isOptional = field === "PRZIP4" || field === "PRZIP2";
+                  return (
+                    <div key={field}>
+                      <label className="block mb-1 font-medium text-[#0486A5]">
+                        ZIP {index + 1}{!isOptional && " *"}
+                      </label>
+                      <input
+                        type="text"
+                        name={field}
+                        value={formData[field]}
+                        required={!isOptional}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-1 focus:border-[#0486A5]"
+                      />
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Title */}
               <div>
                 <label className="block mb-1 font-medium text-[#0486A5]">
-                  Title
+                  Title *
                 </label>
                 <input
                   type="text"
@@ -290,6 +296,7 @@ const NewProviderRegister = () => {
                   type="file"
                   accept="application/pdf"
                   onChange={handleFileChange}
+                  required
                   className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white"
                 />
               </div>

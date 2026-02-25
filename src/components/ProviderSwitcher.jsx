@@ -2,12 +2,11 @@ import React, { useContext, useState, useRef, useEffect } from "react";
 import MyContext from "../ContextApi/MyContext";
 
 const ProviderSwitcher = () => {
-  const { activeProvider, w9ApprovedProviders, switchProvider } = useContext(MyContext);
+  const { activeProvider, w9ApprovedProviders: ctxW9ApprovedProviders, switchProvider } = useContext(MyContext);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Only show providers with W9 approved/uploaded in the switcher
-  const approvedProviders = w9ApprovedProviders || [];
+  const approvedProviders = ctxW9ApprovedProviders || [];
 
   useEffect(() => {
     const handleClickOutside = (event) => {

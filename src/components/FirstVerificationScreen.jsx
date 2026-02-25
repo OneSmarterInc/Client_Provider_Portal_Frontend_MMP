@@ -161,9 +161,9 @@ const FirstVerificationScreen = () => {
   const getStatus = () => {
     switch (status) {
       case "W9_form_uploaded":
-        return "W9 form Uploaded";
+        return "W9 Form Uploaded";
       case "W9_form_not_uploaded":
-        return "W9 form not uploaded";
+        return "Not Submitted";
       case "in_progress":
         return "In Progress";
       case "approved":
