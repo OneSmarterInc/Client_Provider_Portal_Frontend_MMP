@@ -243,7 +243,7 @@ const Register = () => {
 
       await axios.post(`${api}/auth/verify-register-otp/`, payload);
 
-      toast.success("Registration successful!");
+      toast.success("Registration successful! Your account is pending admin approval.");
       setShowOtpModal(false);
       navigate("/login");
     } catch (error) {

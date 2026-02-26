@@ -237,7 +237,7 @@ const FirstVerificationScreen = () => {
           >
             {approvedProviders.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.provider_no}{p.is_primary ? " (Primary)" : ""}{p.is_db2_validated === false ? " (Dummy)" : ""}
+                {p.provider_no}{p.is_primary ? " (Primary)" : ""}
               </option>
             ))}
           </select>
