@@ -14,7 +14,7 @@ const AdminValidations = () => {
   const admin = JSON.parse(localStorage.getItem("user"));
 
   // --- Tab state ---
-  const [mainTab, setMainTab] = useState("providers"); // "w9" | "providers"
+  const [mainTab, setMainTab] = useState("providers"); // "providers" | "w9"
   const [subTab, setSubTab] = useState("pending"); // "pending" | "history"
 
   const handleMainTabChange = (tab) => {
@@ -53,6 +53,16 @@ const AdminValidations = () => {
   const [selectedNewProviderDeclineId, setSelectedNewProviderDeclineId] = useState(null);
   const [newProviderDeclineRemark, setNewProviderDeclineRemark] = useState("");
 
+  // --- User registration (unapproved accounts) state ---
+  const [userRegistrations, setUserRegistrations] = useState([]);
+  const [userRegLoading, setUserRegLoading] = useState(false);
+  const [userRegActionLoading, setUserRegActionLoading] = useState({ approve: null, decline: null });
+  const [showUserRegApproveModal, setShowUserRegApproveModal] = useState(false);
+  const [selectedUserRegApproveId, setSelectedUserRegApproveId] = useState(null);
+  const [showUserRegDeclineModal, setShowUserRegDeclineModal] = useState(false);
+  const [selectedUserRegDeclineId, setSelectedUserRegDeclineId] = useState(null);
+  const [userRegDeclineRemark, setUserRegDeclineRemark] = useState("");
+
   // --- Fetch W9 users on mount ---
   useEffect(() => {
     fetchAllUsers();
@@ -82,6 +92,7 @@ const AdminValidations = () => {
     if (mainTab === "providers") {
       fetchProviderRequests();
       fetchNewProviderRequests();
+      fetchUserRegistrations();
     }
   }, [mainTab]);
 
@@ -116,6 +127,69 @@ const AdminValidations = () => {
     } finally {
       setNewProviderLoading(false);
     }
+  };
+
+  // --- User registration fetch & actions ---
+  const fetchUserRegistrations = async () => {
+    try {
+      setUserRegLoading(true);
+      const response = await axios.get(`${api}/auth/admin/user-registrations/`, {
+        headers: { Authorization: `Token ${admin_token}` },
+      });
+      if (response.data && Array.isArray(response.data)) {
+        setUserRegistrations(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching user registrations", error);
+    } finally {
+      setUserRegLoading(false);
+    }
+  };
+
+  const handleUserRegAction = async (userId, newStatus, remark = "") => {
+    try {
+      setUserRegActionLoading((prev) => ({
+        ...prev,
+        [newStatus === "approved" ? "approve" : "decline"]: userId,
+      }));
+      const response = await axios.post(
+        `${api}/auth/admin/user-approve/`,
+        { user_id: userId, status: newStatus, decline_remark: remark },
+        { headers: { Authorization: `Token ${admin_token}` } }
+      );
+      if (response.status === 200) {
+        toast[newStatus === "approved" ? "success" : "error"](
+          response.data?.message || `User ${newStatus} successfully`
+        );
+        if (response.data.is_email_sent) {
+          toast.success(`Email sent to ${response.data.user_email}`);
+        }
+        fetchUserRegistrations();
+      }
+    } catch (error) {
+      console.error("Error changing user registration status", error);
+      toast.error(error.response?.data?.error || `Failed to ${newStatus} user`);
+    } finally {
+      setUserRegActionLoading({ approve: null, decline: null });
+    }
+  };
+
+  const openUserRegApproveModal = (id) => {
+    setSelectedUserRegApproveId(id);
+    setShowUserRegApproveModal(true);
+  };
+  const confirmUserRegApprove = async () => {
+    await handleUserRegAction(selectedUserRegApproveId, "approved");
+    setShowUserRegApproveModal(false);
+  };
+  const openUserRegDeclineModal = (id) => {
+    setSelectedUserRegDeclineId(id);
+    setUserRegDeclineRemark("");
+    setShowUserRegDeclineModal(true);
+  };
+  const confirmUserRegDecline = async () => {
+    await handleUserRegAction(selectedUserRegDeclineId, "declined", userRegDeclineRemark);
+    setShowUserRegDeclineModal(false);
   };
 
   // --- W9 actions ---
@@ -402,9 +476,9 @@ const AdminValidations = () => {
                   }`}
                 >
                   Provider Requests
-                  {(providerRequests.filter((r) => r.status === "pending").length + newProviderRequests.filter((u) => u.new_provider_status === "pending").length) > 0 && (
+                  {(providerRequests.filter((r) => r.status === "pending").length + newProviderRequests.filter((u) => u.new_provider_status === "pending").length + userRegistrations.filter((u) => !u.is_approved).length) > 0 && (
                     <span className="ml-1 bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5">
-                      {providerRequests.filter((r) => r.status === "pending").length + newProviderRequests.filter((u) => u.new_provider_status === "pending").length}
+                      {providerRequests.filter((r) => r.status === "pending").length + newProviderRequests.filter((u) => u.new_provider_status === "pending").length + userRegistrations.filter((u) => !u.is_approved).length}
                     </span>
                   )}
                 </button>
@@ -467,6 +541,7 @@ const AdminValidations = () => {
                     } else {
                       fetchProviderRequests();
                       fetchNewProviderRequests();
+                      fetchUserRegistrations();
                     }
                   }}
                 >
@@ -864,13 +939,13 @@ const AdminValidations = () => {
               <div>
                 <div className="flex items-center gap-2 mb-3 px-1">
                   <h3 className="text-lg font-semibold text-gray-800">New Provider Registrations</h3>
-                  {newProviderRequests.filter((u) => u.new_provider_status === "pending").length > 0 && (
+                  {(newProviderRequests.filter((u) => u.new_provider_status === "pending").length + userRegistrations.filter((u) => !u.is_approved).length) > 0 && (
                     <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                      {newProviderRequests.filter((u) => u.new_provider_status === "pending").length}
+                      {newProviderRequests.filter((u) => u.new_provider_status === "pending").length + userRegistrations.filter((u) => !u.is_approved).length}
                     </span>
                   )}
                 </div>
-                {newProviderLoading ? (
+                {/* {newProviderLoading ? (
                   <div className="flex justify-center items-center h-32">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
                   </div>
@@ -964,8 +1039,85 @@ const AdminValidations = () => {
                       </table>
                     </div>
                   </div>
-                )}
+                )} */}
               </div>
+
+              {/* Section 3: User Registrations (Pending Approval) */}
+              {userRegLoading ? (
+                <div className="flex justify-center items-center h-32">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : (
+                <div className="mt-6 bg-white shadow-sm rounded-xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider Numbers</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registered At</th>
+                          <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {userRegistrations.filter((u) => !u.is_approved).length === 0 ? (
+                          <tr>
+                            <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                              No pending new provider registration requests
+                            </td>
+                          </tr>
+                        ) : (
+                          userRegistrations
+                          .filter((u) => !u.is_approved)
+                          .map((reg) => (
+                            <tr key={reg.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reg.email}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reg.phone_no}</td>
+                              <td className="px-6 py-4 text-sm text-gray-900">
+                                {reg.provider_numbers?.map((pn) => (
+                                  <span key={pn.id} className="inline-block mr-1 mb-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                    {pn.provider_no}
+                                  </span>
+                                ))}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {reg.date_joined ? new Date(reg.date_joined).toLocaleDateString() : ""}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-center">
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                <div className="flex justify-center space-x-2">
+                                  <button
+                                    onClick={() => openUserRegApproveModal(reg.id)}
+                                    disabled={userRegActionLoading.approve === reg.id}
+                                    className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${userRegActionLoading.decline === reg.id ? "hidden" : ""}`}
+                                  >
+                                    {userRegActionLoading.approve === reg.id ? (
+                                      <><div className="flex animate-spin rounded-full h-5 w-5 border-t-4 border-green-200 border-solid"></div>Approving..</>
+                                    ) : "Approve"}
+                                  </button>
+                                  <button
+                                    onClick={() => openUserRegDeclineModal(reg.id)}
+                                    disabled={userRegActionLoading.decline === reg.id}
+                                    className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${userRegActionLoading.approve === reg.id ? "hidden" : ""}`}
+                                  >
+                                    {userRegActionLoading.decline === reg.id ? (
+                                      <><div className="flex animate-spin rounded-full h-5 w-5 border-t-4 border-red-200 border-solid"></div>Declining..</>
+                                    ) : "Decline"}
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             /* --- Provider Requests: Approved / Declined sub-tab --- */
@@ -1113,6 +1265,7 @@ const AdminValidations = () => {
                   </div>
                 )}
               </div>
+
             </>
           )
         )}
@@ -1213,6 +1366,38 @@ const AdminValidations = () => {
                 }`}
               >
                 {newProviderActionLoading.decline !== null ? "Declining..." : "Confirm Decline"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Registration Approve Modal */}
+      {showUserRegApproveModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <h2 className="text-xl font-bold mb-4 text-cyan-700">Confirm Approval</h2>
+            <p className="mb-4 text-sm">Are you sure you want to approve this user? They will be able to log in to the portal.</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowUserRegApproveModal(false)} disabled={userRegActionLoading.approve !== null} className="px-4 py-2 rounded-xl border border-gray-400 text-gray-600 hover:bg-gray-200 disabled:opacity-50">Cancel</button>
+              <button onClick={confirmUserRegApprove} disabled={userRegActionLoading.approve !== null} className={`px-4 py-2 rounded-xl text-white ${userRegActionLoading.approve !== null ? "bg-green-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"}`}>
+                {userRegActionLoading.approve !== null ? "Approving..." : "Confirm Approve"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Registration Decline Modal */}
+      {showUserRegDeclineModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-lg">
+            <h2 className="text-xl font-bold mb-4 text-cyan-700">Decline Registration</h2>
+            <textarea value={userRegDeclineRemark} onChange={(e) => setUserRegDeclineRemark(e.target.value)} placeholder="Enter reason for decline..." className="w-full border border-gray-300 rounded-lg p-3 h-28 mb-4 focus:outline-none focus:ring focus:ring-cyan-300" />
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowUserRegDeclineModal(false)} disabled={userRegActionLoading.decline !== null} className="px-4 py-2 rounded-xl border border-gray-400 text-gray-600 hover:bg-gray-200 disabled:opacity-50">Cancel</button>
+              <button onClick={confirmUserRegDecline} disabled={userRegActionLoading.decline !== null} className={`px-4 py-2 rounded-xl text-white ${userRegActionLoading.decline !== null ? "bg-red-300 cursor-not-allowed" : "bg-red-500 hover:bg-red-600"}`}>
+                {userRegActionLoading.decline !== null ? "Declining..." : "Confirm Decline"}
               </button>
             </div>
           </div>

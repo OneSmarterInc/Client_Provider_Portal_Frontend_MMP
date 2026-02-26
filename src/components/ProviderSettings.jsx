@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import MyContext from "../ContextApi/MyContext";
+import W9FromSubmission from "./W9FromSubmission";
 
 const ProviderSettings = ({ isOpen, onClose }) => {
   const { api, providerNumbers, updateProviderNumbers, activeProvider, switchProvider } =
@@ -11,6 +12,8 @@ const ProviderSettings = ({ isOpen, onClose }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(null);
+  const [showW9Upload, setShowW9Upload] = useState(false);
+  const [w9SelectedProvider, setW9SelectedProvider] = useState(null);
 
   const authToken = localStorage.getItem("authToken");
   const headers = { Authorization: `Token ${authToken}` };
@@ -180,16 +183,27 @@ const ProviderSettings = ({ isOpen, onClose }) => {
                       Primary
                     </span>
                   )}
-                  {pn.is_db2_validated === false && (
+                  {pn.status === "approved" && pn.w9_status !== "approved" && pn.w9_status !== "W9_form_uploaded" && (
                     <span
-                      className="text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded-full cursor-default"
-                      title="This provider number is not present in the system (DB2). It was added via New Provider Registration."
+                      className="text-[10px] bg-orange-400 text-white px-2 py-0.5 rounded-full cursor-default"
+                      title="W9 form not uploaded. Click 'Upload W9' to upload."
                     >
-                      Dummy
+                      W9 Needed
                     </span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
+                  {pn.status === "approved" && pn.w9_status !== "approved" && pn.w9_status !== "W9_form_uploaded" && (
+                    <button
+                      onClick={() => {
+                        setW9SelectedProvider(pn);
+                        setShowW9Upload(true);
+                      }}
+                      className="text-xs text-orange-500 hover:underline"
+                    >
+                      Upload W9
+                    </button>
+                  )}
                   {pn.status === "approved" && !pn.is_primary && (
                     <button
                       onClick={() => handleSetPrimary(pn.id)}
@@ -235,6 +249,13 @@ const ProviderSettings = ({ isOpen, onClose }) => {
           </div>
         </div>
       </div>
+
+      {/* W9 Upload Modal */}
+      <W9FromSubmission
+        showW9Form={showW9Upload}
+        setShowW9Form={setShowW9Upload}
+        selectedProvider={w9SelectedProvider}
+      />
 
       {/* Remove Confirmation Modal */}
       {showRemoveConfirm && (
