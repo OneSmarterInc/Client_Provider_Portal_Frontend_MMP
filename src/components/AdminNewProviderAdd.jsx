@@ -192,7 +192,8 @@ export default function AdminNewProviderAdd() {
           <table className="w-full text-left text-sm">
             <thead className="bg-[#0486A5] text-white text-xs">
               <tr>
-                <th className="p-3">Provider No. #</th>
+                <th className="p-3">Tax ID #</th>
+                <th className="p-3">NPI</th>
                 <th className="p-3">Name & Email</th>
                 <th className="p-3">Full Address</th>
                 <th className="p-3">Status</th>
@@ -214,6 +215,9 @@ export default function AdminNewProviderAdd() {
                 >
                   <td className="p-3 font-bold text-[#0486A5]">
                     #{item.PRNUM}
+                  </td>
+                  <td className="p-3 text-sm text-gray-700">
+                    {item.PRNPI || "-"}
                   </td>
 
                   <td className="p-3">

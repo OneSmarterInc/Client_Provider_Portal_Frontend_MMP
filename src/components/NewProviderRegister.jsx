@@ -1,11 +1,14 @@
 import React, { useState, useContext } from "react";
 import backgroundImage from "../assets/image.png";
 import MyContext from "../ContextApi/MyContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const NewProviderRegister = () => {
+  const [searchParams] = useSearchParams();
+  const taxIdFromUrl = searchParams.get("taxid") || "";
+
   const [formData, setFormData] = useState({
-    PRNUM: "",
+    PRNUM: taxIdFromUrl,
     PRADR1: "",
     PRADR2: "",
     PRADR3: "",
@@ -35,7 +38,7 @@ const NewProviderRegister = () => {
   // Field label mapping
   const fieldLabels = {
     provider_name: "Provider Name",
-    PRNUM: "Provider Number",
+    PRNUM: "Tax ID",
     provider_email: "Provider Email",
     PRADR1: "Address 1",
     PRADR2: "Address 2",
@@ -152,10 +155,10 @@ const NewProviderRegister = () => {
                 />
               </div>
 
-              {/* Provider Number */}
+              {/* Tax ID */}
               <div>
                 <label className="block mb-1 font-medium text-[#0486A5]">
-                  Provider Number *
+                  Tax ID *
                 </label>
                 <input
                   type="text"

@@ -121,9 +121,11 @@ const LoginLogsTable = () => {
                   <td className="py-3 px-4 text-sm text-gray-600">
                     {log.user_ip}
                   </td>
-                  <td className="py-3 px-4 text-sm">{log.login_date}</td>
                   <td className="py-3 px-4 text-sm">
-                    {log.login_time.split(".")[0]}
+                    {new Date(`${log.login_date}T${log.login_time}Z`).toLocaleDateString()}
+                  </td>
+                  <td className="py-3 px-4 text-sm">
+                    {new Date(`${log.login_date}T${log.login_time}Z`).toLocaleTimeString()}
                   </td>
                   {/* <td className="py-3 px-4 text-sm truncate max-w-md">
                     {log.user_browser}

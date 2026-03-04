@@ -109,11 +109,11 @@ const ProviderLogin = () => {
 
         setStep("otp");
       } else {
-        toast.error("Failed to send OTP.");
+        toast.error("Failed to send OTP. Please try again.");
       }
     } catch (error) {
       toast.error(
-        error.response?.data?.error || "Invalid credentials"
+        error.response?.data?.error || "Invalid credentials. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -123,7 +123,7 @@ const ProviderLogin = () => {
   // STEP 2 — Verify OTP
   const handleVerifyOtp = async () => {
     if (otp.length !== 6) {
-      toast.error("Please enter valid 6 digit OTP");
+      toast.error("Please enter a valid 6-digit OTP.");
       return;
     }
 
@@ -165,7 +165,7 @@ const ProviderLogin = () => {
       }
     } catch (error) {
       toast.error(
-        error.response?.data?.error || "Invalid or expired OTP"
+        error.response?.data?.error || "Invalid or expired OTP. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -285,13 +285,29 @@ const ProviderLogin = () => {
             {isLoading ? "Sending OTP..." : "Login"}
           </button>
         ) : (
-          <button
-            className="bg-[#0486A5] hover:bg-[#047B95] py-2 px-6 text-white rounded-lg text-sm"
-            onClick={handleVerifyOtp}
-            disabled={isLoading}
-          >
-            {isLoading ? "Verifying..." : "Verify OTP"}
-          </button>
+          <div className="flex flex-col gap-2">
+            <button
+              className="bg-[#0486A5] hover:bg-[#047B95] py-2 px-6 text-white rounded-lg text-sm"
+              onClick={handleVerifyOtp}
+              disabled={isLoading}
+            >
+              {isLoading ? "Verifying..." : "Verify OTP"}
+            </button>
+            <button
+              className="py-2 px-6 text-[#0486A5] border border-[#0486A5] hover:bg-gray-50 rounded-lg text-sm"
+              onClick={() => {
+                setStep("login");
+                setOtp("");
+                setVerificationToken("");
+                setFormData((prev) => ({ ...prev, email: "", password: "" }));
+                sessionStorage.removeItem("verificationToken");
+                sessionStorage.removeItem("otpEmail");
+              }}
+              disabled={isLoading}
+            >
+              Use a different email
+            </button>
+          </div>
         )}
 
         {/* Forgot Password Link */}

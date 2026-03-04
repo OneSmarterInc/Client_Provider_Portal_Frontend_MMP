@@ -9,7 +9,7 @@ import AccountVerification from "./AccountVerification";
 import MemberScreenNavbar from "./MemberScreenNavbar";
 
 const MemberScreen = () => {
-  const { api, activeProvider, w9ApprovedProviders, switchProvider } = useContext(MyContext);
+  const { api, activeProvider, approvedProviders, switchProvider } = useContext(MyContext);
   const [isOpenList, setIsOpenList] = useState(false);
   const [showW9Form, setShowW9Form] = useState(false);
   const [showMyProfile, setShowMyProfile] = useState(false);
@@ -24,15 +24,23 @@ const MemberScreen = () => {
   const user = JSON.parse(localStorage.getItem("user"));
   const provider_no = activeProvider?.provider_no || user?.provider_no;
 
-  // Auto-switch to first W9-approved provider if active provider doesn't have W9 approved
+  // Auto-switch to a Tax ID that has W9 if current one doesn't
   useEffect(() => {
-    if (activeProvider && w9ApprovedProviders?.length > 0) {
-      const isW9Approved = activeProvider.w9_status === "approved" || activeProvider.w9_status === "W9_form_uploaded";
-      if (!isW9Approved) {
-        switchProvider(w9ApprovedProviders[0]);
+    if (activeProvider && approvedProviders?.length > 0) {
+      const activeTaxId = (activeProvider.provider_no || "").trim();
+      const taxIdHasW9 = approvedProviders.some(
+        (p) =>
+          (p.provider_no || "").trim() === activeTaxId &&
+          (p.w9_status === "approved" || p.w9_status === "W9_form_uploaded")
+      );
+      if (!taxIdHasW9) {
+        const w9Provider = approvedProviders.find(
+          (p) => p.w9_status === "approved" || p.w9_status === "W9_form_uploaded"
+        );
+        if (w9Provider) switchProvider(w9Provider);
       }
     }
-  }, [activeProvider, w9ApprovedProviders]);
+  }, [activeProvider, approvedProviders]);
 
   useEffect(() => {
     fetchPreviousMonthCounts();
@@ -117,11 +125,32 @@ const MemberScreen = () => {
         </div>
       )}
 
+      <div className="flex justify-end md:mx-20 px-8 mt-4">
+        <button
+          onClick={() => {
+            fetchPreviousMonthCounts();
+            fetchcurrentMonthCounts();
+          }}
+          disabled={prevLoading || currLoading}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+        >
+          <svg
+            className={`w-4 h-4 ${prevLoading || currLoading ? "animate-spin" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Refresh
+        </button>
+      </div>
+
       <div className="flex gap-3 flex-col md:mx-20 my-5 sm:my-2 md:flex-row px-8">
         {/* February Table */}
         <div className="border rounded-tl-lg rounded-bl-lg border-gray-300 pt-2 bg-white w-full md:w-1/2">
           <h2 className="font-inter text-[14px] font-medium mb-2 pl-2">
-            {previousMonthCounts?.month} 2025 (Last Month)
+            {previousMonthCounts?.month} {new Date().getMonth() === 0 ? new Date().getFullYear() - 1 : new Date().getFullYear()} (Last Month)
           </h2>
           <div className="border overflow-hidden rounded-bl-lg border-white">
             <table className="w-full rounded-full">
@@ -221,7 +250,7 @@ const MemberScreen = () => {
         {/* March Table */}
         <div className="border rounded-lg border-sky-400 pt-2  w-full md:w-1/2 bg-blue-50">
           <h2 className="font-inter font-medium text-[14px] mb-2 pl-2 text-[#0486A5]">
-            {currentMonthCounts?.month} 2025 (Current Month)
+            {currentMonthCounts?.month} {new Date().getFullYear()} (Current Month)
           </h2>
           <div className="border overflow-hidden border-white rounder-bl-full">
             <table className="w-full">

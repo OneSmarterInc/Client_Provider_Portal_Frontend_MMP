@@ -167,11 +167,19 @@ const AccountVerification = ({ setShowMyProfile, showMyProfile }) => {
             </div>
             <div className="p-4 mr-16">
               <div>
-                <p className="text-gray-500 text-sm">Provider Number:</p>
+                <p className="text-gray-500 text-sm">Tax ID:</p>
                 <p className="text-[#0486A5] text-sm mb-2">
                   {currentProviderNo || "N/A"}
                 </p>
               </div>
+              {activeProvider?.npi && (
+              <div>
+                <p className="text-gray-500 text-sm">NPI:</p>
+                <p className="text-[#0486A5] text-sm mb-2">
+                  {activeProvider.npi}
+                </p>
+              </div>
+              )}
               <div>
                 <p className="text-gray-500 text-sm">Member Since:</p>
                 <p className="text-[#0486A5] text-sm mb-2">

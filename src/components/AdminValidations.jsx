@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useMemo } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import backgroundImage from "../assets/image.png";
@@ -14,7 +14,7 @@ const AdminValidations = () => {
   const admin = JSON.parse(localStorage.getItem("user"));
 
   // --- Tab state ---
-  const [mainTab, setMainTab] = useState("providers"); // "providers" | "w9"
+  const [mainTab, setMainTab] = useState("providers"); // "providers" | "w9" | "accounts"
   const [subTab, setSubTab] = useState("pending"); // "pending" | "history"
 
   const handleMainTabChange = (tab) => {
@@ -62,6 +62,39 @@ const AdminValidations = () => {
   const [showUserRegDeclineModal, setShowUserRegDeclineModal] = useState(false);
   const [selectedUserRegDeclineId, setSelectedUserRegDeclineId] = useState(null);
   const [userRegDeclineRemark, setUserRegDeclineRemark] = useState("");
+
+  // --- Account management state ---
+  const [allUsers, setAllUsers] = useState([]);
+  const [allUsersLoading, setAllUsersLoading] = useState(false);
+  const [accountSearchQuery, setAccountSearchQuery] = useState("");
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [editUser, setEditUser] = useState(null);
+  const [editUserEmail, setEditUserEmail] = useState("");
+  const [editUserPassword, setEditUserPassword] = useState("");
+  const [editUserLoading, setEditUserLoading] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [showRemoveAccountModal, setShowRemoveAccountModal] = useState(false);
+  const [removeAccountUser, setRemoveAccountUser] = useState(null);
+  const [removeAccountLoading, setRemoveAccountLoading] = useState(false);
+
+  // --- Merged provider requests for unified pending table ---
+  const mergedProviderRequests = useMemo(() => {
+    const npiReqs = providerRequests
+      .filter((r) => r.status === "pending")
+      .map((r) => ({ ...r, _type: "npi_request", _date: r.requested_at }));
+
+    const newRegs = newProviderRequests
+      .filter((u) => u.new_provider_status === "pending")
+      .map((item) => ({ ...item, _type: "new_registration", _date: item.created_at }));
+
+    const userRegs = userRegistrations
+      .filter((u) => !u.is_approved)
+      .map((reg) => ({ ...reg, _type: "user_registration", _date: reg.date_joined }));
+
+    return [...npiReqs, ...newRegs, ...userRegs].sort(
+      (a, b) => new Date(b._date) - new Date(a._date)
+    );
+  }, [providerRequests, newProviderRequests, userRegistrations]);
 
   // --- Fetch W9 users on mount ---
   useEffect(() => {
@@ -190,6 +223,96 @@ const AdminValidations = () => {
   const confirmUserRegDecline = async () => {
     await handleUserRegAction(selectedUserRegDeclineId, "declined", userRegDeclineRemark);
     setShowUserRegDeclineModal(false);
+  };
+
+  // --- Fetch all user accounts for account management ---
+  const fetchAllUserAccounts = async () => {
+    try {
+      setAllUsersLoading(true);
+      const response = await axios.get(`${api}/auth/admin/user-list/`, {
+        headers: { Authorization: `Token ${admin_token}` },
+      });
+      if (response.data && Array.isArray(response.data)) {
+        setAllUsers(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching user accounts", error);
+      toast.error("Failed to fetch user accounts.");
+    } finally {
+      setAllUsersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (mainTab === "accounts") {
+      fetchAllUserAccounts();
+    }
+  }, [mainTab]);
+
+  const handleEditUser = async () => {
+    const payload = { user_id: editUser.id };
+    let hasChanges = false;
+
+    if (editUserEmail.trim().toLowerCase() !== editUser.email.toLowerCase()) {
+      payload.new_email = editUserEmail.trim();
+      hasChanges = true;
+    }
+    if (editUserPassword.trim()) {
+      payload.new_password = editUserPassword.trim();
+      hasChanges = true;
+    }
+
+    if (!hasChanges) {
+      toast.error("No changes to save.");
+      return;
+    }
+
+    try {
+      setEditUserLoading(true);
+      const response = await axios.put(
+        `${api}/auth/admin/edit-user/`,
+        payload,
+        { headers: { Authorization: `Token ${admin_token}` } }
+      );
+      if (response.status === 200) {
+        toast.success(response.data?.message || "User updated successfully.");
+        setShowEditUserModal(false);
+        setEditUser(null);
+        setEditUserEmail("");
+        setEditUserPassword("");
+        setShowEditPassword(false);
+        fetchAllUserAccounts();
+      }
+    } catch (error) {
+      console.error("Error editing user", error);
+      toast.error(error.response?.data?.error || "Failed to update user.");
+    } finally {
+      setEditUserLoading(false);
+    }
+  };
+
+  const handleRemoveAccount = async () => {
+    try {
+      setRemoveAccountLoading(true);
+      const response = await axios.delete(`${api}/auth/admin/remove-account/`, {
+        headers: { Authorization: `Token ${admin_token}` },
+        data: { user_id: removeAccountUser.id },
+      });
+      if (response.status === 200) {
+        toast.success(response.data?.message || "Account removed successfully.");
+        if (response.data.is_email_sent) {
+          toast.success("Notification email sent.");
+        }
+        setShowRemoveAccountModal(false);
+        setRemoveAccountUser(null);
+        fetchAllUserAccounts();
+      }
+    } catch (error) {
+      console.error("Error removing account", error);
+      toast.error(error.response?.data?.error || "Failed to remove account.");
+    } finally {
+      setRemoveAccountLoading(false);
+    }
   };
 
   // --- W9 actions ---
@@ -476,9 +599,9 @@ const AdminValidations = () => {
                   }`}
                 >
                   Provider Requests
-                  {(providerRequests.filter((r) => r.status === "pending").length + newProviderRequests.filter((u) => u.new_provider_status === "pending").length + userRegistrations.filter((u) => !u.is_approved).length) > 0 && (
+                  {mergedProviderRequests.length > 0 && (
                     <span className="ml-1 bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5">
-                      {providerRequests.filter((r) => r.status === "pending").length + newProviderRequests.filter((u) => u.new_provider_status === "pending").length + userRegistrations.filter((u) => !u.is_approved).length}
+                      {mergedProviderRequests.length}
                     </span>
                   )}
                 </button>
@@ -497,39 +620,62 @@ const AdminValidations = () => {
                     </span>
                   )}
                 </button>
+                <button
+                  onClick={() => handleMainTabChange("accounts")}
+                  className={`px-4 py-1 text-xs font-medium rounded-full transition-colors ${
+                    mainTab === "accounts"
+                      ? "bg-cyan-600 text-white shadow-sm"
+                      : "text-gray-600 hover:text-gray-800"
+                  }`}
+                >
+                  Account Management
+                </button>
               </div>
               {/* Sub-tabs */}
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setSubTab("pending")}
-                  className={`px-3 py-0.5 text-xs font-medium rounded-full transition-colors border ${
-                    subTab === "pending"
-                      ? "bg-cyan-100 text-cyan-700 border-cyan-300"
-                      : "text-gray-500 hover:text-gray-700 border-gray-300"
-                  }`}
-                >
-                  Pending
-                </button>
-                <button
-                  onClick={() => setSubTab("history")}
-                  className={`px-3 py-0.5 text-xs font-medium rounded-full transition-colors border ${
-                    subTab === "history"
-                      ? "bg-cyan-100 text-cyan-700 border-cyan-300"
-                      : "text-gray-500 hover:text-gray-700 border-gray-300"
-                  }`}
-                >
-                  Approved / Declined
-                </button>
-              </div>
+              {mainTab !== "accounts" && (
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setSubTab("pending")}
+                    className={`px-3 py-0.5 text-xs font-medium rounded-full transition-colors border ${
+                      subTab === "pending"
+                        ? "bg-cyan-100 text-cyan-700 border-cyan-300"
+                        : "text-gray-500 hover:text-gray-700 border-gray-300"
+                    }`}
+                  >
+                    Pending
+                  </button>
+                  <button
+                    onClick={() => setSubTab("history")}
+                    className={`px-3 py-0.5 text-xs font-medium rounded-full transition-colors border ${
+                      subTab === "history"
+                        ? "bg-cyan-100 text-cyan-700 border-cyan-300"
+                        : "text-gray-500 hover:text-gray-700 border-gray-300"
+                    }`}
+                  >
+                    Approved / Declined
+                  </button>
+                </div>
+              )}
               <div className="flex justify-between gap-4 items-center w-full md:w-auto">
                 {mainTab === "w9" && (
                   <div className="w-full sm:w-auto">
                     <input
                       type="text"
-                      placeholder="Search Email or Provider No."
+                      placeholder="Search Email or Tax ID"
                       className="border border-gray-300 w-full sm:w-auto px-4 placeholder:text-sm py-1 rounded-full text-sm"
                       onChange={(e) => setSearchQuery(e.target.value)}
                       value={searchQuery}
+                    />
+                  </div>
+                )}
+                {mainTab === "accounts" && (
+                  <div className="w-full sm:w-auto">
+                    <input
+                      type="text"
+                      placeholder="Search Email or Phone"
+                      className="border border-gray-300 w-full sm:w-auto px-4 placeholder:text-sm py-1 rounded-full text-sm"
+                      onChange={(e) => setAccountSearchQuery(e.target.value)}
+                      value={accountSearchQuery}
                     />
                   </div>
                 )}
@@ -538,6 +684,8 @@ const AdminValidations = () => {
                   onClick={() => {
                     if (mainTab === "w9") {
                       fetchAllUsers();
+                    } else if (mainTab === "accounts") {
+                      fetchAllUserAccounts();
                     } else {
                       fetchProviderRequests();
                       fetchNewProviderRequests();
@@ -580,7 +728,110 @@ const AdminValidations = () => {
         </div>
 
         {/* ===== CONTENT ===== */}
-        {mainTab === "w9" ? (
+        {mainTab === "accounts" ? (
+          /* --- Account Management Tab Content --- */
+          allUsersLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          ) : (
+            <div className="bg-white shadow-sm rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tax IDs</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registered At</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {allUsers
+                      .filter((u) =>
+                        u.email?.toLowerCase().includes(accountSearchQuery.toLowerCase()) ||
+                        u.phone_no?.toLowerCase().includes(accountSearchQuery.toLowerCase())
+                      ).length === 0 ? (
+                      <tr>
+                        <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                          No user accounts found
+                        </td>
+                      </tr>
+                    ) : (
+                      allUsers
+                        .filter((u) =>
+                          u.email?.toLowerCase().includes(accountSearchQuery.toLowerCase()) ||
+                          u.phone_no?.toLowerCase().includes(accountSearchQuery.toLowerCase())
+                        )
+                        .map((user) => (
+                          <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.email}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.phone_no || "-"}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              {user.is_admin ? (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Admin</span>
+                              ) : (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Provider</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-900">
+                              {user.provider_numbers?.length > 0 ? [...new Set(user.provider_numbers.map((pn) => pn.provider_no))].map((taxId) => (
+                                <span key={taxId} className="inline-block mr-1 mb-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                  {taxId}
+                                </span>
+                              )) : <span className="text-gray-400">-</span>}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {user.date_joined ? new Date(user.date_joined).toLocaleDateString() : ""}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              {user.is_approved ? (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Approved</span>
+                              ) : (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                              {user.is_admin ? (
+                                <span className="text-gray-400 italic text-xs">Protected</span>
+                              ) : (
+                                <div className="flex justify-center space-x-2">
+                                  <button
+                                    onClick={() => {
+                                      setEditUser(user);
+                                      setEditUserEmail(user.email);
+                                      setEditUserPassword("");
+                                      setShowEditPassword(false);
+                                      setShowEditUserModal(true);
+                                    }}
+                                    className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setRemoveAccountUser(user);
+                                      setShowRemoveAccountModal(true);
+                                    }}
+                                    className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )
+        ) : mainTab === "w9" ? (
           /* --- W9 Tab Content --- */
           loading ? (
             <div className="flex justify-center items-center h-64">
@@ -620,7 +871,10 @@ const AdminValidations = () => {
                         }
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
-                        Provider No. {renderSortIndicator("user_provider_no")}
+                        Tax ID {renderSortIndicator("user_provider_no")}
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        NPI
                       </th>
                       <th
                         onClick={() =>
@@ -684,7 +938,7 @@ const AdminValidations = () => {
                     {filteredList.length === 0 ? (
                       <tr>
                         <td
-                          colSpan="9"
+                          colSpan="10"
                           className="px-6 py-4 text-center text-gray-500"
                         >
                           {subTab === "pending"
@@ -706,6 +960,9 @@ const AdminValidations = () => {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               {user.user_provider_no || "-"}{" "}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {user.user_npi || "-"}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-center">
                               {statusLabel(user.status)}
@@ -853,17 +1110,17 @@ const AdminValidations = () => {
           /* --- Provider Requests Tab Content --- */
           subTab === "pending" ? (
             <>
-              {/* Section 1: Provider Number Requests */}
+              {/* Unified Provider Requests Table */}
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-3 px-1">
-                  <h3 className="text-lg font-semibold text-gray-800">Provider Number Requests</h3>
-                  {providerRequests.filter((r) => r.status === "pending").length > 0 && (
+                  <h3 className="text-lg font-semibold text-gray-800">Provider Requests</h3>
+                  {mergedProviderRequests.length > 0 && (
                     <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                      {providerRequests.filter((r) => r.status === "pending").length}
+                      {mergedProviderRequests.length}
                     </span>
                   )}
                 </div>
-                {providerRequestsLoading ? (
+                {(providerRequestsLoading || newProviderLoading || userRegLoading) ? (
                   <div className="flex justify-center items-center h-32">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
                   </div>
@@ -873,141 +1130,156 @@ const AdminValidations = () => {
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider No.</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tax ID</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NPI</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested At</th>
                             <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {providerRequests.filter((r) => r.status === "pending").length === 0 ? (
+                          {mergedProviderRequests.length === 0 ? (
                             <tr>
-                              <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
-                                No pending provider number requests
+                              <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
+                                No pending provider requests
                               </td>
                             </tr>
                           ) : (
-                            providerRequests.filter((r) => r.status === "pending").map((req) => (
-                              <tr key={req.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{req.user_email}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{req.provider_no}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                  {req.requested_at ? req.requested_at.split("T")[0] : ""}
+                            mergedProviderRequests.map((item) => (
+                              <tr key={`${item._type}-${item.id}`} className="hover:bg-gray-50 transition-colors">
+                                {/* Type */}
+                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                  {item._type === "npi_request" ? (
+                                    item.npi ? (
+                                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">NPI Request</span>
+                                    ) : (
+                                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">Tax ID Request</span>
+                                    )
+                                  ) : item._type === "new_registration" ? (
+                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">New Registration</span>
+                                  ) : (
+                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">User Registration</span>
+                                  )}
                                 </td>
+                                {/* Email */}
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {item._type === "npi_request" ? item.user_email : item._type === "new_registration" ? item.provider_email : item.email}
+                                </td>
+                                {/* Tax ID */}
+                                <td className="px-6 py-4 text-sm text-gray-900">
+                                  {item._type === "npi_request" ? (
+                                    item.provider_no
+                                  ) : item._type === "new_registration" ? (
+                                    item.PRNUM
+                                  ) : (
+                                    item.provider_numbers?.map((pn) => (
+                                      <div key={pn.id} className="mb-1">
+                                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                          {pn.provider_no}
+                                        </span>
+                                      </div>
+                                    )) || "-"
+                                  )}
+                                </td>
+                                {/* NPI */}
+                                <td className="px-6 py-4 text-sm text-gray-900">
+                                  {item._type === "npi_request" ? (
+                                    item.npi || "-"
+                                  ) : item._type === "new_registration" ? (
+                                    item.PRNPI || "-"
+                                  ) : (
+                                    item.provider_numbers?.map((pn) => (
+                                      <div key={pn.id} className="mb-1">
+                                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                          {pn.npi || "-"}
+                                        </span>
+                                      </div>
+                                    )) || "-"
+                                  )}
+                                </td>
+                                {/* Details */}
+                                <td className="px-6 py-4 text-sm text-gray-900">
+                                  {item._type === "npi_request" ? (
+                                    item.other_accounts?.length > 0 ? (
+                                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                                        Also registered under: {item.other_accounts.join(", ")}
+                                      </div>
+                                    ) : "-"
+                                  ) : item._type === "new_registration" ? (
+                                    <div className="space-y-1">
+                                      <p><strong>Name:</strong> {item.provider_name}</p>
+                                      <p><strong>Address:</strong> {getFullAddress(item)}</p>
+                                      <p><strong>Title:</strong> {item?.PRTITL || "-"}</p>
+                                      {item.w9Form_url ? (
+                                        <p><strong>W9:</strong>{" "}
+                                          <a
+                                            href={item.w9Form_url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                                          >
+                                            Download
+                                          </a>
+                                        </p>
+                                      ) : (
+                                        <p><strong>W9:</strong> <span className="text-gray-400">No File</span></p>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-1">
+                                      <p><strong>Phone:</strong> {item.phone_no || "-"}</p>
+                                      {item.provider_numbers?.map((pn) => (
+                                        pn.other_accounts?.length > 0 && (
+                                          <div key={pn.id} className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                                            {pn.provider_no} also registered under: {pn.other_accounts.join(", ")}
+                                          </div>
+                                        )
+                                      ))}
+                                    </div>
+                                  )}
+                                </td>
+                                {/* Requested At */}
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {item._type === "user_registration"
+                                    ? (item._date ? new Date(item._date).toLocaleDateString() : "")
+                                    : (item._date ? item._date.split("T")[0] : "")}
+                                </td>
+                                {/* Status */}
                                 <td className="px-6 py-4 whitespace-nowrap text-center">
                                   <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                     Pending
                                   </span>
                                 </td>
+                                {/* Actions */}
                                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                  <div className="flex justify-center space-x-2">
-                                    <button
-                                      onClick={() => handleProviderStatusChange(req.id, "approved")}
-                                      disabled={providerActionLoading.approve === req.id}
-                                      className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${providerActionLoading.decline === req.id ? "hidden" : ""}`}
-                                    >
-                                      {providerActionLoading.approve === req.id ? (
-                                        <><div className="flex animate-spin rounded-full h-5 w-5 border-t-4 border-green-200 border-solid"></div>Approving..</>
-                                      ) : "Approve"}
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        setSelectedProviderRequest(req);
-                                        setIsProviderDeclineModalOpen(true);
-                                      }}
-                                      disabled={providerActionLoading.decline === req.id}
-                                      className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${providerActionLoading.approve === req.id ? "hidden" : ""}`}
-                                    >
-                                      {providerActionLoading.decline === req.id ? (
-                                        <><div className="flex animate-spin rounded-full h-5 w-5 border-t-4 border-red-200 border-solid"></div>Declining..</>
-                                      ) : "Decline"}
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Section 2: New Provider Registrations (Pending) */}
-              <div>
-                <div className="flex items-center gap-2 mb-3 px-1">
-                  <h3 className="text-lg font-semibold text-gray-800">New Provider Registrations</h3>
-                  {(newProviderRequests.filter((u) => u.new_provider_status === "pending").length + userRegistrations.filter((u) => !u.is_approved).length) > 0 && (
-                    <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                      {newProviderRequests.filter((u) => u.new_provider_status === "pending").length + userRegistrations.filter((u) => !u.is_approved).length}
-                    </span>
-                  )}
-                </div>
-                {/* {newProviderLoading ? (
-                  <div className="flex justify-center items-center h-32">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                  </div>
-                ) : (
-                  <div className="bg-white shadow-sm rounded-xl overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider No.</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name & Email</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Address</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">W9 Form</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Decline Remark</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {newProviderRequests.filter((u) => u.new_provider_status === "pending").length === 0 ? (
-                            <tr>
-                              <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
-                                No pending new provider registration requests
-                              </td>
-                            </tr>
-                          ) : (
-                            newProviderRequests
-                              .filter((u) => u.new_provider_status === "pending")
-                              .map((item) => (
-                                <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-cyan-700">
-                                    #{item.PRNUM}
-                                  </td>
-                                  <td className="px-6 py-4 text-sm text-gray-900">
-                                    <p><strong>Name:</strong> {item.provider_name}</p>
-                                    <p><strong>Email:</strong> {item.provider_email}</p>
-                                  </td>
-                                  <td className="px-6 py-4 text-sm text-gray-900">
-                                    <p><strong>Address:</strong> {getFullAddress(item)}</p>
-                                    <p><strong>Title:</strong> {item?.PRTITL || "-"}</p>
-                                    <p><strong>Description:</strong> {item?.description || "-"}</p>
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                      Pending
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                    {item.w9Form_url ? (
-                                      <a
-                                        href={item.w9Form_url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                  {item._type === "npi_request" ? (
+                                    <div className="flex justify-center space-x-2">
+                                      <button
+                                        onClick={() => handleProviderStatusChange(item.id, "approved")}
+                                        disabled={providerActionLoading.approve === item.id}
+                                        className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${providerActionLoading.decline === item.id ? "hidden" : ""}`}
                                       >
-                                        Download
-                                      </a>
-                                    ) : (
-                                      <span className="text-gray-400">No File</span>
-                                    )}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                        {providerActionLoading.approve === item.id ? (
+                                          <><div className="flex animate-spin rounded-full h-5 w-5 border-t-4 border-green-200 border-solid"></div>Approving..</>
+                                        ) : "Approve"}
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setSelectedProviderRequest(item);
+                                          setIsProviderDeclineModalOpen(true);
+                                        }}
+                                        disabled={providerActionLoading.decline === item.id}
+                                        className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${providerActionLoading.approve === item.id ? "hidden" : ""}`}
+                                      >
+                                        {providerActionLoading.decline === item.id ? (
+                                          <><div className="flex animate-spin rounded-full h-5 w-5 border-t-4 border-red-200 border-solid"></div>Declining..</>
+                                        ) : "Decline"}
+                                      </button>
+                                    </div>
+                                  ) : item._type === "new_registration" ? (
                                     <div className="flex justify-center space-x-2">
                                       <button
                                         onClick={() => openNewProviderApproveModal(item.id)}
@@ -1028,96 +1300,39 @@ const AdminValidations = () => {
                                         ) : "Decline"}
                                       </button>
                                     </div>
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                    {item?.decline_remark || "-"}
-                                  </td>
-                                </tr>
-                              ))
+                                  ) : (
+                                    <div className="flex justify-center space-x-2">
+                                      <button
+                                        onClick={() => openUserRegApproveModal(item.id)}
+                                        disabled={userRegActionLoading.approve === item.id}
+                                        className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${userRegActionLoading.decline === item.id ? "hidden" : ""}`}
+                                      >
+                                        {userRegActionLoading.approve === item.id ? (
+                                          <><div className="flex animate-spin rounded-full h-5 w-5 border-t-4 border-green-200 border-solid"></div>Approving..</>
+                                        ) : "Approve"}
+                                      </button>
+                                      <button
+                                        onClick={() => openUserRegDeclineModal(item.id)}
+                                        disabled={userRegActionLoading.decline === item.id}
+                                        className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${userRegActionLoading.approve === item.id ? "hidden" : ""}`}
+                                      >
+                                        {userRegActionLoading.decline === item.id ? (
+                                          <><div className="flex animate-spin rounded-full h-5 w-5 border-t-4 border-red-200 border-solid"></div>Declining..</>
+                                        ) : "Decline"}
+                                      </button>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            ))
                           )}
                         </tbody>
                       </table>
                     </div>
                   </div>
-                )} */}
+                )}
               </div>
 
-              {/* Section 3: User Registrations (Pending Approval) */}
-              {userRegLoading ? (
-                <div className="flex justify-center items-center h-32">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                </div>
-              ) : (
-                <div className="mt-6 bg-white shadow-sm rounded-xl overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider Numbers</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registered At</th>
-                          <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {userRegistrations.filter((u) => !u.is_approved).length === 0 ? (
-                          <tr>
-                            <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
-                              No pending new provider registration requests
-                            </td>
-                          </tr>
-                        ) : (
-                          userRegistrations
-                          .filter((u) => !u.is_approved)
-                          .map((reg) => (
-                            <tr key={reg.id} className="hover:bg-gray-50 transition-colors">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reg.email}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reg.phone_no}</td>
-                              <td className="px-6 py-4 text-sm text-gray-900">
-                                {reg.provider_numbers?.map((pn) => (
-                                  <span key={pn.id} className="inline-block mr-1 mb-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                                    {pn.provider_no}
-                                  </span>
-                                ))}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {reg.date_joined ? new Date(reg.date_joined).toLocaleDateString() : ""}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-center">
-                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                <div className="flex justify-center space-x-2">
-                                  <button
-                                    onClick={() => openUserRegApproveModal(reg.id)}
-                                    disabled={userRegActionLoading.approve === reg.id}
-                                    className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${userRegActionLoading.decline === reg.id ? "hidden" : ""}`}
-                                  >
-                                    {userRegActionLoading.approve === reg.id ? (
-                                      <><div className="flex animate-spin rounded-full h-5 w-5 border-t-4 border-green-200 border-solid"></div>Approving..</>
-                                    ) : "Approve"}
-                                  </button>
-                                  <button
-                                    onClick={() => openUserRegDeclineModal(reg.id)}
-                                    disabled={userRegActionLoading.decline === reg.id}
-                                    className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${userRegActionLoading.approve === reg.id ? "hidden" : ""}`}
-                                  >
-                                    {userRegActionLoading.decline === reg.id ? (
-                                      <><div className="flex animate-spin rounded-full h-5 w-5 border-t-4 border-red-200 border-solid"></div>Declining..</>
-                                    ) : "Decline"}
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
             </>
           ) : (
             /* --- Provider Requests: Approved / Declined sub-tab --- */
@@ -1125,7 +1340,7 @@ const AdminValidations = () => {
               {/* Section 1: Provider Number Requests — Approved / Declined */}
               <div className="mb-8">
                 <div className="flex items-center gap-2 mb-3 px-1">
-                  <h3 className="text-lg font-semibold text-gray-800">Provider Number Requests — Approved / Declined</h3>
+                  <h3 className="text-lg font-semibold text-gray-800">Tax ID / NPI Requests — Approved / Declined</h3>
                 </div>
                 {providerRequestsLoading ? (
                   <div className="flex justify-center items-center h-32">
@@ -1138,7 +1353,8 @@ const AdminValidations = () => {
                         <thead className="bg-gray-50">
                           <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider No.</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tax ID</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NPI</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested At</th>
                             <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                           </tr>
@@ -1146,7 +1362,7 @@ const AdminValidations = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                           {providerRequests.filter((r) => r.status === "approved" || r.status === "declined").length === 0 ? (
                             <tr>
-                              <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
+                              <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
                                 No approved/declined provider number requests found
                               </td>
                             </tr>
@@ -1157,6 +1373,7 @@ const AdminValidations = () => {
                                 <tr key={req.id} className="hover:bg-gray-50 transition-colors">
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{req.user_email}</td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-cyan-700">#{req.provider_no}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{req.npi || "-"}</td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {new Date(req.requested_at).toLocaleDateString()}
                                   </td>
@@ -1196,7 +1413,8 @@ const AdminValidations = () => {
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider No.</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tax ID</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NPI</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name & Email</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Address</th>
                             <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -1207,7 +1425,7 @@ const AdminValidations = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                           {newProviderRequests.filter((u) => u.new_provider_status === "approved" || u.new_provider_status === "declined").length === 0 ? (
                             <tr>
-                              <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                              <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
                                 No approved/declined provider registrations found
                               </td>
                             </tr>
@@ -1219,6 +1437,7 @@ const AdminValidations = () => {
                                   <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-cyan-700">
                                     #{item.PRNUM}
                                   </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.PRNPI || "-"}</td>
                                   <td className="px-6 py-4 text-sm text-gray-900">
                                     <p><strong>Name:</strong> {item.provider_name}</p>
                                     <p><strong>Email:</strong> {item.provider_email}</p>
@@ -1398,6 +1617,135 @@ const AdminValidations = () => {
               <button onClick={() => setShowUserRegDeclineModal(false)} disabled={userRegActionLoading.decline !== null} className="px-4 py-2 rounded-xl border border-gray-400 text-gray-600 hover:bg-gray-200 disabled:opacity-50">Cancel</button>
               <button onClick={confirmUserRegDecline} disabled={userRegActionLoading.decline !== null} className={`px-4 py-2 rounded-xl text-white ${userRegActionLoading.decline !== null ? "bg-red-300 cursor-not-allowed" : "bg-red-500 hover:bg-red-600"}`}>
                 {userRegActionLoading.decline !== null ? "Declining..." : "Confirm Decline"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditUserModal && editUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <h2 className="text-xl font-bold mb-5 text-cyan-700">Edit User</h2>
+
+            {/* Email */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                value={editUserEmail}
+                onChange={(e) => setEditUserEmail(e.target.value)}
+                placeholder="Enter email address"
+                className="w-full border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring focus:ring-cyan-300 text-sm"
+              />
+            </div>
+
+            {/* Role (read-only) */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+              <div className="w-full border border-gray-200 rounded-lg p-2.5 bg-gray-50 text-sm">
+                {editUser.is_admin ? (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Admin</span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Provider</span>
+                )}
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              {showEditPassword ? (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={editUserPassword}
+                    onChange={(e) => setEditUserPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    className="flex-1 border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring focus:ring-cyan-300 text-sm"
+                  />
+                  <button
+                    onClick={() => { setShowEditPassword(false); setEditUserPassword(""); }}
+                    className="px-3 py-2 text-xs text-gray-500 border border-gray-300 rounded-lg hover:bg-gray-100"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowEditPassword(true)}
+                  className="text-sm text-cyan-600 hover:text-cyan-700 hover:underline font-medium"
+                >
+                  Reset Password
+                </button>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowEditUserModal(false);
+                  setEditUser(null);
+                  setEditUserEmail("");
+                  setEditUserPassword("");
+                  setShowEditPassword(false);
+                }}
+                disabled={editUserLoading}
+                className="px-4 py-2 rounded-xl border border-gray-400 text-gray-600 hover:bg-gray-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditUser}
+                disabled={editUserLoading}
+                className={`px-4 py-2 rounded-xl text-white ${
+                  editUserLoading
+                    ? "bg-cyan-400 cursor-not-allowed"
+                    : "bg-cyan-600 hover:bg-cyan-700"
+                }`}
+              >
+                {editUserLoading ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Account Modal */}
+      {showRemoveAccountModal && removeAccountUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <h2 className="text-xl font-bold mb-4 text-red-600">Remove Account</h2>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-red-800 font-medium mb-2">
+                This action cannot be undone.
+              </p>
+              <p className="text-sm text-red-700">
+                You are about to permanently remove the account for <strong>{removeAccountUser.email}</strong>. All associated data (provider numbers, W9 forms, login logs) will be deleted.
+              </p>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowRemoveAccountModal(false);
+                  setRemoveAccountUser(null);
+                }}
+                disabled={removeAccountLoading}
+                className="px-4 py-2 rounded-xl border border-gray-400 text-gray-600 hover:bg-gray-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRemoveAccount}
+                disabled={removeAccountLoading}
+                className={`px-4 py-2 rounded-xl text-white ${
+                  removeAccountLoading
+                    ? "bg-red-300 cursor-not-allowed"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
+              >
+                {removeAccountLoading ? "Removing..." : "Confirm Remove"}
               </button>
             </div>
           </div>

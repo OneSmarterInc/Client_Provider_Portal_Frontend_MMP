@@ -45,7 +45,7 @@ const MemberScreenNavbar = ({
               Welcome, {user?.email}!
             </h3>
             <ProviderSwitcher />
-            <button onClick={() => navigate("/watchlist")}>Watchlist</button>
+            {/* <button onClick={() => navigate("/watchlist")}>Watchlist</button> */}
             <img
               src="/images/Header/img-11.png"
               alt="Profile"
