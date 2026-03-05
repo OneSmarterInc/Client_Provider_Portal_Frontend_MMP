@@ -30,10 +30,9 @@ const ViewEOBDownload = ({ claim_no, isOpen, onClose }) => {
     setError(null);
     try {
       const response = await axios.get(
-        `${api}/eob_new/get_eob?claim_number=${
+        `${api}/eob/generate_eob?claim_number=${
           claim_no_from_params ? claim_no_from_params : claim_no
         }`,
-        // `${api}/portal/get_eob?claim_no=000023629`,
         {
           responseType: "blob",
         }
