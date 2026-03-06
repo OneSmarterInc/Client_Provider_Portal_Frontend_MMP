@@ -14,7 +14,7 @@ const FirstVerificationScreen = () => {
   const { api, activeProvider, approvedProviders, fetchProviders } = useContext(MyContext);
   const [showW9Form, setShowW9Form] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState(null);
-  const [selectedTaxId, setSelectedTaxId] = useState(null);
+  const [selectedTaxId, setSelectedTaxId] = useState(null); // kept for internal tracking
   const [db2Npis, setDb2Npis] = useState([]);
   const [db2NpisLoading, setDb2NpisLoading] = useState(true);
   const [addNpiLoading, setAddNpiLoading] = useState(false);
@@ -129,25 +129,14 @@ const FirstVerificationScreen = () => {
     backgroundPosition: "center",
   };
 
-  const emailParts = userData.email.split("@")[0].split(".");
-  const firstName = emailParts[0] || "User";
-  const lastName = emailParts.length > 1 ? emailParts[1] : "";
-
-  const handleTaxIdChange = (e) => {
-    const taxId = e.target.value;
-    setSelectedTaxId(taxId);
-    const npis = grouped[taxId] || [];
-    if (npis.length > 0) {
-      setSelectedProvider(npis[0]);
-    }
-  };
+  const displayName = userData.name || userData.email.split("@")[0];
 
   // NPIs for the currently selected Tax ID
   const npisForSelectedTaxId = selectedTaxId ? (grouped[selectedTaxId] || []) : [];
 
   const authToken = localStorage.getItem("authToken");
 
-  const handleAddNpiToProvider = async (npi, sequenceNumber) => {
+  const handleAddNpiToProvider = async (npi, sequenceNumber, extraFields = {}) => {
     if (!npi || !npi.trim()) {
       toast.error("Please enter a valid NPI number.");
       throw new Error("Invalid NPI");
@@ -159,7 +148,7 @@ const FirstVerificationScreen = () => {
     try {
       await axios.post(
         `${api}/auth/providers/add/`,
-        { provider_no: taxId, npi: npi.trim(), provider_sequence: sequenceNumber || "" },
+        { provider_no: taxId, npi: npi.trim(), provider_sequence: sequenceNumber || "", ...extraFields },
         { headers: { Authorization: `Token ${authToken}` } }
       );
       toast.success("NPI added successfully! Pending admin approval.");
@@ -204,29 +193,11 @@ const FirstVerificationScreen = () => {
         {/* User info bar */}
         <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
           <span className="font-medium text-gray-800">
-            {firstName.charAt(0).toUpperCase() + firstName.slice(1)}
-            {lastName ? ` ${lastName.charAt(0).toUpperCase() + lastName.slice(1)}` : ""}
+            {displayName}
           </span>
           <span className="text-gray-500">{userData.email}</span>
           <span className="text-gray-400">|</span>
-          {taxIds.length > 1 ? (
-            <select
-              value={selectedTaxId || ""}
-              onChange={handleTaxIdChange}
-              className="border border-gray-300 rounded px-2 py-0.5 text-sm text-[#0486A5] font-medium bg-white focus:outline-none focus:ring-1 focus:ring-[#0486A5]"
-            >
-              {taxIds.map((taxId) => {
-                const hasPrimary = grouped[taxId].some((p) => p.is_primary);
-                return (
-                  <option key={taxId} value={taxId}>
-                    Tax ID: {taxId}{hasPrimary ? " (Primary)" : ""}
-                  </option>
-                );
-              })}
-            </select>
-          ) : (
-            <span className="text-gray-600">Tax ID: <span className="text-[#0486A5] font-medium">{currentProviderNo || "N/A"}</span></span>
-          )}
+          <span className="text-gray-600">Tax ID: <span className="text-[#0486A5] font-medium">{currentProviderNo || "N/A"}</span></span>
         </div>
 
         {/* Main content */}

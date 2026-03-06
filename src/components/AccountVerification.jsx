@@ -30,9 +30,7 @@ const AccountVerification = ({ setShowMyProfile, showMyProfile }) => {
     backgroundPosition: "center",
   };
 
-  const emailParts = userData.email.split("@")[0].split(".");
-  const firstName = emailParts[0] || "User";
-  const lastName = emailParts.length > 1 ? emailParts[1] : "";
+  const displayName = userData.name || userData.email.split("@")[0];
 
   const [status, setStatus] = useState("not_submitted");
 
@@ -144,9 +142,7 @@ const AccountVerification = ({ setShowMyProfile, showMyProfile }) => {
           <div className="flex flex-row p-2">
             <div className="p-4 border-r-2  ">
               <h2 className="text-[#0486A5] text-xl mb-2">
-                {firstName.charAt(0).toUpperCase() + firstName.slice(1)} <br />
-                {lastName &&
-                  lastName.charAt(0).toUpperCase() + lastName.slice(1)}
+                {displayName}
               </h2>
               <p className="text-sm text-black-300 mb-2">{userData.email}</p>
               <p className="text-sx">

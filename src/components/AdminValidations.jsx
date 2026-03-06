@@ -3,6 +3,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import backgroundImage from "../assets/image.png";
 import { useNavigate } from "react-router-dom";
+import { CheckCircle, XCircle, Pencil, Trash2, Download, Loader2 } from "lucide-react";
 import MyContext from "../ContextApi/MyContext";
 import DeclineRemarkModal from "./DeclineRemarkModal";
 import AdminPasswordResetModal from "./AdminPasswordResetModal";
@@ -69,6 +70,7 @@ const AdminValidations = () => {
   const [accountSearchQuery, setAccountSearchQuery] = useState("");
   const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [editUser, setEditUser] = useState(null);
+  const [editUserName, setEditUserName] = useState("");
   const [editUserEmail, setEditUserEmail] = useState("");
   const [editUserPassword, setEditUserPassword] = useState("");
   const [editUserLoading, setEditUserLoading] = useState(false);
@@ -253,6 +255,10 @@ const AdminValidations = () => {
     const payload = { user_id: editUser.id };
     let hasChanges = false;
 
+    if (editUserName.trim() !== (editUser.name || "")) {
+      payload.new_name = editUserName.trim();
+      hasChanges = true;
+    }
     if (editUserEmail.trim().toLowerCase() !== editUser.email.toLowerCase()) {
       payload.new_email = editUserEmail.trim();
       hasChanges = true;
@@ -278,6 +284,7 @@ const AdminValidations = () => {
         toast.success(response.data?.message || "User updated successfully.");
         setShowEditUserModal(false);
         setEditUser(null);
+        setEditUserName("");
         setEditUserEmail("");
         setEditUserPassword("");
         setShowEditPassword(false);
@@ -740,6 +747,7 @@ const AdminValidations = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                       <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
@@ -752,11 +760,12 @@ const AdminValidations = () => {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {allUsers
                       .filter((u) =>
+                        u.name?.toLowerCase().includes(accountSearchQuery.toLowerCase()) ||
                         u.email?.toLowerCase().includes(accountSearchQuery.toLowerCase()) ||
                         u.phone_no?.toLowerCase().includes(accountSearchQuery.toLowerCase())
                       ).length === 0 ? (
                       <tr>
-                        <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                        <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
                           No user accounts found
                         </td>
                       </tr>
@@ -768,6 +777,7 @@ const AdminValidations = () => {
                         )
                         .map((user) => (
                           <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.name || "-"}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.email}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.phone_no || "-"}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -802,23 +812,26 @@ const AdminValidations = () => {
                                   <button
                                     onClick={() => {
                                       setEditUser(user);
+                                      setEditUserName(user.name || "");
                                       setEditUserEmail(user.email);
                                       setEditUserPassword("");
                                       setShowEditPassword(false);
                                       setShowEditUserModal(true);
                                     }}
-                                    className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none"
+                                    title="Edit"
+                                    className="inline-flex items-center p-1.5 border border-transparent rounded-md shadow-sm text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none"
                                   >
-                                    Edit
+                                    <Pencil className="w-4 h-4" />
                                   </button>
                                   <button
                                     onClick={() => {
                                       setRemoveAccountUser(user);
                                       setShowRemoveAccountModal(true);
                                     }}
-                                    className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none"
+                                    title="Remove"
+                                    className="inline-flex items-center p-1.5 border border-transparent rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none"
                                   >
-                                    Remove
+                                    <Trash2 className="w-4 h-4" />
                                   </button>
                                 </div>
                               )}
@@ -1015,40 +1028,26 @@ const AdminValidations = () => {
                                     onClick={() =>
                                       handleStatusChange(user.user_id, user.user_provider_no, "approved", "", user.provider_number_id)
                                     }
-                                    disabled={
-                                      actionLoading.approve === user.user_id
-                                    }
-                                    className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-75 disabled:cursor-not-allowed ${actionLoading.decline === user.user_id
-                                      ? "hidden"
-                                      : ""
-                                      }`}
+                                    disabled={actionLoading.approve === user.user_id}
+                                    title="Approve"
+                                    className={`inline-flex items-center p-1.5 border border-transparent rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${actionLoading.decline === user.user_id ? "hidden" : ""}`}
                                   >
                                     {actionLoading.approve === user.user_id ? (
-                                      <>
-                                        <div className=" flex animate-spin rounded-full h-5 w-5 border-t-4 border-green-200 border-solid"></div>
-                                        Approving..
-                                      </>
+                                      <Loader2 className="w-4 h-4 animate-spin" />
                                     ) : (
-                                      "Approve"
+                                      <CheckCircle className="w-4 h-4" />
                                     )}
                                   </button>
                                   <button
                                     onClick={() => handleAddDeclineRemark(user)}
-                                    disabled={
-                                      actionLoading.decline === user.user_id
-                                    }
-                                    className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-75 disabled:cursor-not-allowed ${actionLoading.approve === user.user_id
-                                      ? "hidden"
-                                      : ""
-                                      }`}
+                                    disabled={actionLoading.decline === user.user_id}
+                                    title="Decline"
+                                    className={`inline-flex items-center p-1.5 border border-transparent rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${actionLoading.approve === user.user_id ? "hidden" : ""}`}
                                   >
                                     {actionLoading.decline === user.user_id ? (
-                                      <>
-                                        <div className=" flex animate-spin rounded-full h-5 w-5 border-t-4 border-red-200 border-solid"></div>
-                                        Declining..
-                                      </>
+                                      <Loader2 className="w-4 h-4 animate-spin" />
                                     ) : (
-                                      "Decline"
+                                      <XCircle className="w-4 h-4" />
                                     )}
                                   </button>
                                 </div>
@@ -1219,9 +1218,10 @@ const AdminValidations = () => {
                                             href={item.w9Form_url}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                                            className="text-blue-600 hover:text-blue-800 inline-flex items-center"
+                                            title="Download W9"
                                           >
-                                            Download
+                                            <Download className="w-4 h-4" />
                                           </a>
                                         </p>
                                       ) : (
@@ -1260,23 +1260,18 @@ const AdminValidations = () => {
                                       <button
                                         onClick={() => handleProviderStatusChange(item.id, "approved")}
                                         disabled={providerActionLoading.approve === item.id}
-                                        className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${providerActionLoading.decline === item.id ? "hidden" : ""}`}
+                                        title="Approve"
+                                        className={`inline-flex items-center p-1.5 border border-transparent rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${providerActionLoading.decline === item.id ? "hidden" : ""}`}
                                       >
-                                        {providerActionLoading.approve === item.id ? (
-                                          <><div className="flex animate-spin rounded-full h-5 w-5 border-t-4 border-green-200 border-solid"></div>Approving..</>
-                                        ) : "Approve"}
+                                        {providerActionLoading.approve === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                                       </button>
                                       <button
-                                        onClick={() => {
-                                          setSelectedProviderRequest(item);
-                                          setIsProviderDeclineModalOpen(true);
-                                        }}
+                                        onClick={() => { setSelectedProviderRequest(item); setIsProviderDeclineModalOpen(true); }}
                                         disabled={providerActionLoading.decline === item.id}
-                                        className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${providerActionLoading.approve === item.id ? "hidden" : ""}`}
+                                        title="Decline"
+                                        className={`inline-flex items-center p-1.5 border border-transparent rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${providerActionLoading.approve === item.id ? "hidden" : ""}`}
                                       >
-                                        {providerActionLoading.decline === item.id ? (
-                                          <><div className="flex animate-spin rounded-full h-5 w-5 border-t-4 border-red-200 border-solid"></div>Declining..</>
-                                        ) : "Decline"}
+                                        {providerActionLoading.decline === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
                                       </button>
                                     </div>
                                   ) : item._type === "new_registration" ? (
@@ -1284,20 +1279,18 @@ const AdminValidations = () => {
                                       <button
                                         onClick={() => openNewProviderApproveModal(item.id)}
                                         disabled={newProviderActionLoading.approve === item.id}
-                                        className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${newProviderActionLoading.decline === item.id ? "hidden" : ""}`}
+                                        title="Approve"
+                                        className={`inline-flex items-center p-1.5 border border-transparent rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${newProviderActionLoading.decline === item.id ? "hidden" : ""}`}
                                       >
-                                        {newProviderActionLoading.approve === item.id ? (
-                                          <><div className="flex animate-spin rounded-full h-5 w-5 border-t-4 border-green-200 border-solid"></div>Approving..</>
-                                        ) : "Approve"}
+                                        {newProviderActionLoading.approve === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                                       </button>
                                       <button
                                         onClick={() => openNewProviderDeclineModal(item.id)}
                                         disabled={newProviderActionLoading.decline === item.id}
-                                        className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${newProviderActionLoading.approve === item.id ? "hidden" : ""}`}
+                                        title="Decline"
+                                        className={`inline-flex items-center p-1.5 border border-transparent rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${newProviderActionLoading.approve === item.id ? "hidden" : ""}`}
                                       >
-                                        {newProviderActionLoading.decline === item.id ? (
-                                          <><div className="flex animate-spin rounded-full h-5 w-5 border-t-4 border-red-200 border-solid"></div>Declining..</>
-                                        ) : "Decline"}
+                                        {newProviderActionLoading.decline === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
                                       </button>
                                     </div>
                                   ) : (
@@ -1305,20 +1298,18 @@ const AdminValidations = () => {
                                       <button
                                         onClick={() => openUserRegApproveModal(item.id)}
                                         disabled={userRegActionLoading.approve === item.id}
-                                        className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${userRegActionLoading.decline === item.id ? "hidden" : ""}`}
+                                        title="Approve"
+                                        className={`inline-flex items-center p-1.5 border border-transparent rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${userRegActionLoading.decline === item.id ? "hidden" : ""}`}
                                       >
-                                        {userRegActionLoading.approve === item.id ? (
-                                          <><div className="flex animate-spin rounded-full h-5 w-5 border-t-4 border-green-200 border-solid"></div>Approving..</>
-                                        ) : "Approve"}
+                                        {userRegActionLoading.approve === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                                       </button>
                                       <button
                                         onClick={() => openUserRegDeclineModal(item.id)}
                                         disabled={userRegActionLoading.decline === item.id}
-                                        className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${userRegActionLoading.approve === item.id ? "hidden" : ""}`}
+                                        title="Decline"
+                                        className={`inline-flex items-center p-1.5 border border-transparent rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed ${userRegActionLoading.approve === item.id ? "hidden" : ""}`}
                                       >
-                                        {userRegActionLoading.decline === item.id ? (
-                                          <><div className="flex animate-spin rounded-full h-5 w-5 border-t-4 border-red-200 border-solid"></div>Declining..</>
-                                        ) : "Decline"}
+                                        {userRegActionLoading.decline === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
                                       </button>
                                     </div>
                                   )}
@@ -1464,9 +1455,10 @@ const AdminValidations = () => {
                                         href={item.w9Form_url}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                        className="text-blue-600 hover:text-blue-800 inline-flex items-center"
+                                        title="Download W9"
                                       >
-                                        Download
+                                        <Download className="w-4 h-4" />
                                       </a>
                                     ) : (
                                       <span className="text-gray-400">No File</span>
@@ -1629,6 +1621,18 @@ const AdminValidations = () => {
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
             <h2 className="text-xl font-bold mb-5 text-cyan-700">Edit User</h2>
 
+            {/* Name */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Provider Name</label>
+              <input
+                type="text"
+                value={editUserName}
+                onChange={(e) => setEditUserName(e.target.value)}
+                placeholder="Enter provider name"
+                className="w-full border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring focus:ring-cyan-300 text-sm"
+              />
+            </div>
+
             {/* Email */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -1687,6 +1691,7 @@ const AdminValidations = () => {
                 onClick={() => {
                   setShowEditUserModal(false);
                   setEditUser(null);
+                  setEditUserName("");
                   setEditUserEmail("");
                   setEditUserPassword("");
                   setShowEditPassword(false);

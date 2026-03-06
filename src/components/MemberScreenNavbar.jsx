@@ -42,7 +42,7 @@ const MemberScreenNavbar = ({
         <div className="flex items-center justify-end pl-4 pr-4 pb-0 gap-4">
           <div className="flex items-center gap-4">
             <h3 className="font-inter text-sm text-black-700">
-              Welcome, {user?.email}!
+              Welcome, {user?.name || user?.email}!
             </h3>
             <ProviderSwitcher />
             {/* <button onClick={() => navigate("/watchlist")}>Watchlist</button> */}

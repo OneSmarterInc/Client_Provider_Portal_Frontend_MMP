@@ -14,6 +14,15 @@ const NpiSelectionTable = ({
 }) => {
   const [editingIdx, setEditingIdx] = useState(null);
   const [inlineNpiValue, setInlineNpiValue] = useState("");
+  const [showNewNpiRow, setShowNewNpiRow] = useState(false);
+  const [newNpiValue, setNewNpiValue] = useState("");
+  const [newSeqValue, setNewSeqValue] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [newAddress1, setNewAddress1] = useState("");
+  const [newAddress2, setNewAddress2] = useState("");
+  const [newCity, setNewCity] = useState("");
+  const [newState, setNewState] = useState("");
+  const [newZip, setNewZip] = useState("");
 
   if (loading) {
     return (
@@ -265,9 +274,89 @@ const NpiSelectionTable = ({
                 </React.Fragment>
               );
             })}
+
           </tbody>
         </table>
       </div>
+
+      {/* Add New NPI - outside scrollable table */}
+      {showNewNpiRow ? (
+        <div className="mt-3 border border-blue-200 rounded-lg bg-blue-50/50 p-3 space-y-2">
+          <span className="text-xs font-semibold text-gray-700">Add New NPI Entry</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div>
+              <label className="block text-[10px] text-gray-500 mb-0.5">NPI *</label>
+              <input type="text" value={newNpiValue} onChange={(e) => setNewNpiValue(e.target.value)} placeholder="NPI Number" className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[#0486A5] focus:outline-none disabled:bg-gray-100" autoFocus disabled={addingNpi} />
+            </div>
+            <div>
+              <label className="block text-[10px] text-gray-500 mb-0.5">Seq #</label>
+              <input type="text" value={newSeqValue} onChange={(e) => setNewSeqValue(e.target.value)} placeholder="Optional" className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[#0486A5] focus:outline-none disabled:bg-gray-100" disabled={addingNpi} />
+            </div>
+            <div>
+              <label className="block text-[10px] text-gray-500 mb-0.5">Title</label>
+              <input type="text" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Provider Title" className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[#0486A5] focus:outline-none disabled:bg-gray-100" disabled={addingNpi} />
+            </div>
+            <div>
+              <label className="block text-[10px] text-gray-500 mb-0.5">Address Line 1</label>
+              <input type="text" value={newAddress1} onChange={(e) => setNewAddress1(e.target.value)} placeholder="Street Address" className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[#0486A5] focus:outline-none disabled:bg-gray-100" disabled={addingNpi} />
+            </div>
+            <div>
+              <label className="block text-[10px] text-gray-500 mb-0.5">Address Line 2</label>
+              <input type="text" value={newAddress2} onChange={(e) => setNewAddress2(e.target.value)} placeholder="Suite, Unit, etc." className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[#0486A5] focus:outline-none disabled:bg-gray-100" disabled={addingNpi} />
+            </div>
+            <div>
+              <label className="block text-[10px] text-gray-500 mb-0.5">City</label>
+              <input type="text" value={newCity} onChange={(e) => setNewCity(e.target.value)} placeholder="City" className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[#0486A5] focus:outline-none disabled:bg-gray-100" disabled={addingNpi} />
+            </div>
+            <div>
+              <label className="block text-[10px] text-gray-500 mb-0.5">State</label>
+              <input type="text" value={newState} onChange={(e) => setNewState(e.target.value)} placeholder="State" className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[#0486A5] focus:outline-none disabled:bg-gray-100" disabled={addingNpi} />
+            </div>
+            <div>
+              <label className="block text-[10px] text-gray-500 mb-0.5">ZIP Code</label>
+              <input type="text" value={newZip} onChange={(e) => setNewZip(e.target.value)} placeholder="ZIP" className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[#0486A5] focus:outline-none disabled:bg-gray-100" disabled={addingNpi} />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={async () => {
+                if (newNpiValue.trim() && onAddNpi) {
+                  try {
+                    await onAddNpi(newNpiValue.trim(), newSeqValue.trim(), {
+                      title: newTitle.trim(),
+                      address_line1: newAddress1.trim(),
+                      address_line2: newAddress2.trim(),
+                      city: newCity.trim(),
+                      state: newState.trim(),
+                      zip_code: newZip.trim(),
+                    });
+                    setNewNpiValue(""); setNewSeqValue(""); setNewTitle(""); setNewAddress1(""); setNewAddress2(""); setNewCity(""); setNewState(""); setNewZip(""); setShowNewNpiRow(false);
+                  } catch {}
+                }
+              }}
+              disabled={addingNpi || !newNpiValue.trim()}
+              className="bg-[#0486A5] hover:bg-[#047B95] text-white px-3 py-1.5 rounded text-xs disabled:opacity-50 flex items-center gap-1"
+            >
+              {addingNpi ? (<><Loader2 className="h-3 w-3 animate-spin" /> Adding...</>) : "Add NPI"}
+            </button>
+            <button
+              onClick={() => { setShowNewNpiRow(false); setNewNpiValue(""); setNewSeqValue(""); setNewTitle(""); setNewAddress1(""); setNewAddress2(""); setNewCity(""); setNewState(""); setNewZip(""); }}
+              disabled={addingNpi}
+              className="text-gray-400 hover:text-gray-600 text-xs disabled:opacity-30"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setShowNewNpiRow(true)}
+          className="mt-2 flex items-center gap-1.5 text-xs text-[#0486A5] font-medium hover:text-[#047B95]"
+        >
+          <span className="w-4 h-4 rounded-full bg-[#0486A5] text-white text-[10px] flex items-center justify-center font-bold">+</span>
+          Add New NPI
+        </button>
+      )}
 
       {/* Actions below table */}
       <div className="mt-3 flex flex-col gap-2">
