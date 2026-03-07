@@ -263,8 +263,6 @@ const ProviderSettings = ({ isOpen, onClose }) => {
                     ) : (
                       <NpiSelectionTable
                         npis={db2Data.npis}
-                        selectedNpi={null}
-                        onSelectionChange={() => {}}
                         onAddNpi={(npi, seq, extra) => handleAddNpiToTaxId(taxId, npi, seq, extra)}
                         onUploadW9={(npi) => {
                           const target = pns.find(

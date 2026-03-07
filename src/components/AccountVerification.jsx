@@ -30,7 +30,7 @@ const AccountVerification = ({ setShowMyProfile, showMyProfile }) => {
     backgroundPosition: "center",
   };
 
-  const displayName = userData.name || userData.email.split("@")[0];
+  const displayName = userData.name || "";
 
   const [status, setStatus] = useState("not_submitted");
 
