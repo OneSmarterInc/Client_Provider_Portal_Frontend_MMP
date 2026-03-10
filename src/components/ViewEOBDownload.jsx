@@ -43,7 +43,18 @@ const ViewEOBDownload = ({ claim_no, isOpen, onClose }) => {
       );
       setPdfUrl(url);
     } catch (err) {
-      setError("Failed to fetch data. Please try again.");
+      // Backend returns JSON error even though we requested blob — parse it
+      if (err.response && err.response.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const json = JSON.parse(text);
+          setError(json.message || "Failed to fetch EOB. Please try again.");
+        } catch {
+          setError("Failed to fetch EOB. Please try again.");
+        }
+      } else {
+        setError("Failed to fetch EOB. Please try again.");
+      }
     }
     setLoading(false);
   };

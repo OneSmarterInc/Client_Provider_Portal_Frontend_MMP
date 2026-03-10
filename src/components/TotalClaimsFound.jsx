@@ -612,7 +612,7 @@ const TotalClaimsFound = ({
                               </p>
                               <p>
                                 <strong>Payment Amount:</strong> $
-                                {selectedRowData?.CHAMM$ || "0.00"}
+                                {selectedRowData?.CHMM$ || "0.00"}
                               </p>
                               <p>
                                 <strong>Receipt Date:</strong>{" "}
