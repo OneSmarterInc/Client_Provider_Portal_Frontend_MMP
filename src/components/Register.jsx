@@ -6,6 +6,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import MyContext from "../ContextApi/MyContext";
+import DisclaimerModal from "./DisclaimerModal";
 
 const InputField = ({
   label,
@@ -93,6 +94,7 @@ const Register = () => {
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(null);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   // Tax ID must be validated, and at least one NPI validated (or Tax ID alone is enough)
   const isReady = taxIdValidated || npiEntries.some((e) => e.validated);
@@ -258,9 +260,22 @@ const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleRegister = async () => {
+  const handleRegisterClick = () => {
     if (!validateForm()) return;
+    setShowDisclaimer(true);
+  };
 
+  const handleDisclaimerAccept = () => {
+    setShowDisclaimer(false);
+    handleRegister();
+  };
+
+  const handleDisclaimerDecline = () => {
+    setShowDisclaimer(false);
+    toast.info("You must accept the Terms of Use to complete registration.");
+  };
+
+  const handleRegister = async () => {
     setIsRegistering(true);
     try {
       // Build provider_numbers: one Tax ID + multiple NPIs
@@ -489,7 +504,7 @@ const Register = () => {
             className={`flex items-center justify-center py-2 px-8 text-white rounded-lg ${
               isReady ? "bg-[#0486A5] hover:bg-[#047B95]" : "bg-gray-400"
             }`}
-            onClick={handleRegister}
+            onClick={handleRegisterClick}
             disabled={!isReady || isRegistering}
           >
             {isRegistering ? (
@@ -528,6 +543,13 @@ const Register = () => {
           </div>
         </div>
       )}
+
+      <DisclaimerModal
+        isOpen={showDisclaimer}
+        onAccept={handleDisclaimerAccept}
+        onDecline={handleDisclaimerDecline}
+        context="register"
+      />
 
       {showOtpModal && (
         <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">

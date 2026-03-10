@@ -6,6 +6,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import MyContext from "../ContextApi/MyContext";
+import DisclaimerModal from "./DisclaimerModal";
 
 const ProviderLogin = () => {
   const { api, fetchProviders } = useContext(MyContext);
@@ -21,6 +22,8 @@ const ProviderLogin = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [pendingLoginData, setPendingLoginData] = useState(null);
 
   const [step, setStep] = useState("login");
   const [otp, setOtp] = useState("");
@@ -138,30 +141,9 @@ const ProviderLogin = () => {
 
       if (response.data.token) {
         console.log(response)
-        // Enrich user data with active provider info
-        const userData = response.data.user;
-        const pns = userData.provider_numbers || [];
-        const primary = pns.find((p) => p.is_primary) || pns[0] || null;
-        userData.active_provider_no = primary?.provider_no || userData.provider_no || "";
-        userData.active_provider_id = primary?.id || null;
-
-        localStorage.setItem("authToken", response.data.token);
-        localStorage.setItem("user", JSON.stringify(userData));
-
-        // Fetch DB2-enriched provider data before navigating
-        await fetchProviders();
-
-        toast.success("Login successful!");
-
-        // Reset everything
-        setOtp("");
-        setVerificationToken("");
-        sessionStorage.removeItem("verificationToken");
-        setStep("login");
-
-        response.data.user?.is_admin
-          ? navigate("/admin")
-          : navigate("/verify");
+        // Store login data but don't navigate yet — show disclaimer first
+        setPendingLoginData(response.data);
+        setShowDisclaimer(true);
       }
     } catch (error) {
       toast.error(
@@ -170,6 +152,44 @@ const ProviderLogin = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDisclaimerAccept = async () => {
+    if (!pendingLoginData) return;
+
+    const userData = pendingLoginData.user;
+    const pns = userData.provider_numbers || [];
+    const primary = pns.find((p) => p.is_primary) || pns[0] || null;
+    userData.active_provider_no = primary?.provider_no || userData.provider_no || "";
+    userData.active_provider_id = primary?.id || null;
+
+    localStorage.setItem("authToken", pendingLoginData.token);
+    localStorage.setItem("user", JSON.stringify(userData));
+
+    await fetchProviders();
+
+    toast.success("Login successful!");
+
+    setOtp("");
+    setVerificationToken("");
+    sessionStorage.removeItem("verificationToken");
+    setStep("login");
+    setShowDisclaimer(false);
+    setPendingLoginData(null);
+
+    userData.is_admin ? navigate("/admin") : navigate("/verify");
+  };
+
+  const handleDisclaimerDecline = () => {
+    setShowDisclaimer(false);
+    setPendingLoginData(null);
+    setOtp("");
+    setVerificationToken("");
+    sessionStorage.removeItem("verificationToken");
+    sessionStorage.removeItem("otpEmail");
+    setStep("login");
+    setFormData((prev) => ({ ...prev, email: "", password: "" }));
+    toast.info("You must accept the Terms of Use to access this website.");
   };
 
   const togglePasswordVisibility = () => {
@@ -343,6 +363,13 @@ const ProviderLogin = () => {
           </p>
         </div>
       </div>
+
+      <DisclaimerModal
+        isOpen={showDisclaimer}
+        onAccept={handleDisclaimerAccept}
+        onDecline={handleDisclaimerDecline}
+        context="login"
+      />
     </div>
   );
 };
