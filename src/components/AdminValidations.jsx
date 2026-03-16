@@ -3,7 +3,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import backgroundImage from "../assets/image.png";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle, XCircle, Pencil, Trash2, Download, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Pencil, Trash2, Download, Loader2, Eye } from "lucide-react";
 import MyContext from "../ContextApi/MyContext";
 import DeclineRemarkModal from "./DeclineRemarkModal";
 import AdminPasswordResetModal from "./AdminPasswordResetModal";
@@ -78,6 +78,17 @@ const AdminValidations = () => {
   const [showRemoveAccountModal, setShowRemoveAccountModal] = useState(false);
   const [removeAccountUser, setRemoveAccountUser] = useState(null);
   const [removeAccountLoading, setRemoveAccountLoading] = useState(false);
+
+  // --- Guest management state ---
+  const [guestList, setGuestList] = useState([]);
+  const [guestLoading, setGuestLoading] = useState(false);
+  const [guestForm, setGuestForm] = useState({ email: "", name: "", phone_no: "", password: "", role: "guest" });
+  const [guestCreateLoading, setGuestCreateLoading] = useState(false);
+  const [guestDeleteLoading, setGuestDeleteLoading] = useState(null);
+  const [showGuestDeleteModal, setShowGuestDeleteModal] = useState(false);
+  const [guestDeleteTarget, setGuestDeleteTarget] = useState(null);
+
+  const isGuest = admin?.is_guest && !admin?.is_admin;
 
   // --- Merged provider requests for unified pending table ---
   const mergedProviderRequests = useMemo(() => {
@@ -248,6 +259,70 @@ const AdminValidations = () => {
   useEffect(() => {
     if (mainTab === "accounts") {
       fetchAllUserAccounts();
+    }
+  }, [mainTab]);
+
+  // --- Guest management functions ---
+  const fetchGuestList = async () => {
+    try {
+      setGuestLoading(true);
+      const response = await axios.get(`${api}/auth/admin/guest-list/`, {
+        headers: { Authorization: `Token ${admin_token}` },
+      });
+      if (response.data && Array.isArray(response.data)) {
+        setGuestList(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching guest list", error);
+      toast.error("Failed to fetch guest list.");
+    } finally {
+      setGuestLoading(false);
+    }
+  };
+
+  const handleCreateGuest = async () => {
+    if (!guestForm.email || !guestForm.password) {
+      toast.error("Email and password are required.");
+      return;
+    }
+    const isAdmin = guestForm.role === "admin";
+    const endpoint = isAdmin ? `${api}/auth/admin/create-admin/` : `${api}/auth/admin/create-guest/`;
+    try {
+      setGuestCreateLoading(true);
+      await axios.post(
+        endpoint,
+        { email: guestForm.email, name: guestForm.name, phone_no: guestForm.phone_no, password: guestForm.password },
+        { headers: { Authorization: `Token ${admin_token}` } }
+      );
+      toast.success(`${isAdmin ? "Admin" : "Guest"} account created successfully!`);
+      setGuestForm({ email: "", name: "", phone_no: "", password: "", role: "guest" });
+      fetchGuestList();
+    } catch (error) {
+      toast.error(error.response?.data?.error || `Failed to create ${isAdmin ? "admin" : "guest"} account.`);
+    } finally {
+      setGuestCreateLoading(false);
+    }
+  };
+
+  const handleDeleteGuest = async (userId) => {
+    try {
+      setGuestDeleteLoading(userId);
+      await axios.delete(`${api}/auth/admin/delete-guest/`, {
+        headers: { Authorization: `Token ${admin_token}` },
+        data: { user_id: userId },
+      });
+      toast.success("Guest account removed.");
+      fetchGuestList();
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Failed to remove guest account.");
+    } finally {
+      setGuestDeleteLoading(null);
+    }
+  };
+
+  useEffect(() => {
+    if (mainTab === "guests") {
+      fetchGuestList();
     }
   }, [mainTab]);
 
@@ -637,9 +712,19 @@ const AdminValidations = () => {
                 >
                   Account Management
                 </button>
+                <button
+                  onClick={() => handleMainTabChange("guests")}
+                  className={`px-4 py-1 text-xs font-medium rounded-full transition-colors ${
+                    mainTab === "guests"
+                      ? "bg-cyan-600 text-white shadow-sm"
+                      : "text-gray-600 hover:text-gray-800"
+                  }`}
+                >
+                  Create Users
+                </button>
               </div>
               {/* Sub-tabs */}
-              {mainTab !== "accounts" && (
+              {mainTab !== "accounts" && mainTab !== "guests" && (
                 <div className="flex gap-1">
                   <button
                     onClick={() => setSubTab("pending")}
@@ -693,6 +778,8 @@ const AdminValidations = () => {
                       fetchAllUsers();
                     } else if (mainTab === "accounts") {
                       fetchAllUserAccounts();
+                    } else if (mainTab === "guests") {
+                      fetchGuestList();
                     } else {
                       fetchProviderRequests();
                       fetchNewProviderRequests();
@@ -783,6 +870,8 @@ const AdminValidations = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-center">
                               {user.is_admin ? (
                                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Admin</span>
+                              ) : user.is_guest ? (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Guest</span>
                               ) : (
                                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Provider</span>
                               )}
@@ -805,7 +894,9 @@ const AdminValidations = () => {
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                              {user.is_admin ? (
+                              {isGuest ? (
+                                <span className="text-gray-400 italic text-xs">View Only</span>
+                              ) : user.is_admin ? (
                                 <span className="text-gray-400 italic text-xs">Protected</span>
                               ) : (
                                 <div className="flex justify-center space-x-2">
@@ -823,6 +914,29 @@ const AdminValidations = () => {
                                   >
                                     <Pencil className="w-4 h-4" />
                                   </button>
+                                  {/* Viewer toggle hidden for now
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        const res = await axios.post(
+                                          `${api}/auth/admin/toggle-viewer/`,
+                                          { user_id: user.id },
+                                          { headers: { Authorization: `Token ${admin_token}` } }
+                                        );
+                                        toast.success(res.data.message);
+                                        fetchAllUserAccounts();
+                                      } catch (err) {
+                                        toast.error(err.response?.data?.error || "Failed to toggle viewer access");
+                                      }
+                                    }}
+                                    title={user.is_viewer ? "Revoke Viewer Access" : "Grant Viewer Access"}
+                                    className={`inline-flex items-center p-1.5 border border-transparent rounded-md shadow-sm text-white focus:outline-none ${
+                                      user.is_viewer ? "bg-emerald-600 hover:bg-emerald-700" : "bg-gray-400 hover:bg-gray-500"
+                                    }`}
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+                                  */}
                                   <button
                                     onClick={() => {
                                       setRemoveAccountUser(user);
@@ -844,6 +958,76 @@ const AdminValidations = () => {
               </div>
             </div>
           )
+        ) : mainTab === "guests" ? (
+          /* --- Create Users Tab Content --- */
+          <div className="space-y-6">
+            {/* Create Account Form */}
+            <div className="bg-white shadow-sm rounded-xl p-6">
+              <h3 className="text-sm font-semibold text-gray-800 mb-4">Create New Account</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input
+                  type="email"
+                  placeholder="Email *"
+                  className="border border-gray-300 px-4 py-2 rounded-lg text-sm"
+                  value={guestForm.email}
+                  onChange={(e) => setGuestForm({ ...guestForm, email: e.target.value })}
+                />
+                <input
+                  type="text"
+                  placeholder="Name"
+                  className="border border-gray-300 px-4 py-2 rounded-lg text-sm"
+                  value={guestForm.name}
+                  onChange={(e) => setGuestForm({ ...guestForm, name: e.target.value })}
+                />
+                <input
+                  type="text"
+                  placeholder="Phone"
+                  className="border border-gray-300 px-4 py-2 rounded-lg text-sm"
+                  value={guestForm.phone_no}
+                  onChange={(e) => setGuestForm({ ...guestForm, phone_no: e.target.value })}
+                />
+                <input
+                  type="password"
+                  placeholder="Password *"
+                  className="border border-gray-300 px-4 py-2 rounded-lg text-sm"
+                  value={guestForm.password}
+                  onChange={(e) => setGuestForm({ ...guestForm, password: e.target.value })}
+                />
+                <div className="flex items-center gap-4">
+                  <label className="text-sm font-medium text-gray-700">Role:</label>
+                  <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                    <input
+                      type="radio"
+                      name="createRole"
+                      value="guest"
+                      checked={guestForm.role === "guest"}
+                      onChange={() => setGuestForm({ ...guestForm, role: "guest" })}
+                      className="accent-cyan-600"
+                    />
+                    Guest
+                  </label>
+                  <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                    <input
+                      type="radio"
+                      name="createRole"
+                      value="admin"
+                      checked={guestForm.role === "admin"}
+                      onChange={() => setGuestForm({ ...guestForm, role: "admin" })}
+                      className="accent-cyan-600"
+                    />
+                    Admin
+                  </label>
+                </div>
+              </div>
+              <button
+                onClick={handleCreateGuest}
+                disabled={guestCreateLoading}
+                className="mt-4 px-6 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium rounded-lg disabled:opacity-50"
+              >
+                {guestCreateLoading ? "Creating..." : `Create ${guestForm.role === "admin" ? "Admin" : "Guest"}`}
+              </button>
+            </div>
+          </div>
         ) : mainTab === "w9" ? (
           /* --- W9 Tab Content --- */
           loading ? (
@@ -1651,6 +1835,8 @@ const AdminValidations = () => {
               <div className="w-full border border-gray-200 rounded-lg p-2.5 bg-gray-50 text-sm">
                 {editUser.is_admin ? (
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Admin</span>
+                ) : editUser.is_guest ? (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Guest</span>
                 ) : (
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Provider</span>
                 )}
@@ -1711,6 +1897,47 @@ const AdminValidations = () => {
                 }`}
               >
                 {editUserLoading ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guest/Admin Delete Confirmation Modal */}
+      {showGuestDeleteModal && guestDeleteTarget && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <h2 className="text-xl font-bold mb-4 text-red-600">Remove Account</h2>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-red-800 font-medium mb-2">
+                This action cannot be undone.
+              </p>
+              <p className="text-sm text-red-700">
+                Are you sure you want to remove the {guestDeleteTarget.is_admin ? "admin" : "guest"} account for <strong>{guestDeleteTarget.email}</strong>?
+              </p>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => { setShowGuestDeleteModal(false); setGuestDeleteTarget(null); }}
+                disabled={guestDeleteLoading}
+                className="px-4 py-2 rounded-xl border border-gray-400 text-gray-600 hover:bg-gray-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  await handleDeleteGuest(guestDeleteTarget.id);
+                  setShowGuestDeleteModal(false);
+                  setGuestDeleteTarget(null);
+                }}
+                disabled={guestDeleteLoading}
+                className={`px-4 py-2 rounded-xl text-white ${
+                  guestDeleteLoading
+                    ? "bg-red-300 cursor-not-allowed"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
+              >
+                {guestDeleteLoading ? "Removing..." : "Confirm Remove"}
               </button>
             </div>
           </div>

@@ -177,7 +177,7 @@ const ProviderLogin = () => {
     setShowDisclaimer(false);
     setPendingLoginData(null);
 
-    userData.is_admin ? navigate("/admin") : navigate("/verify");
+    (userData.is_admin || userData.is_guest) ? navigate("/admin") : navigate("/verify");
   };
 
   const handleDisclaimerDecline = () => {

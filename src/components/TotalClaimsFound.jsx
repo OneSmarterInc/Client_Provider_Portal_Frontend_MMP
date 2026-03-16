@@ -634,12 +634,33 @@ const TotalClaimsFound = ({
                                 <strong>Status:</strong>{" "}
                                 {selectedRowData?.CHHDST || ""}
                               </p>
+                              <p>
+                                <strong>Hos/MM Ded:</strong> $
+                                {selectedRowData?.CHHOSD || "0.00"}
+                              </p>
+                              <p>
+                                <strong>PCP Deductible:</strong> $
+                                {selectedRowData?.CHPCPD || "0.00"}
+                              </p>
+                              <p>
+                                <strong>Co-Insurance:</strong> $
+                                {selectedRowData?.["CHCO$"] || "0.00"}
+                              </p>
+                              <p>
+                                <strong>Co-Pay:</strong> $
+                                {selectedRowData?.CHCOPA || "0.00"}
+                              </p>
+                              <p>
+                                <strong>Over R & C:</strong> $
+                                {selectedRowData?.["CHDRC$"] || "0.00"}
+                              </p>
                             </div>
                             <div className="flex justify-between items-center text-xs text-gray-700 my-2">
                               <p className="grid-cols-2 text-xs text-gray-700">
                                 <strong>Description:</strong>{" "}
                                 {selectedRowData?.CHCLEX || ""}
                               </p>{" "}
+                              {JSON.parse(localStorage.getItem("user"))?.is_admin && (
                               <button
                                 onClick={() =>
                                   setIsShowTotalClaimsDetailsOpen(true)
@@ -649,6 +670,7 @@ const TotalClaimsFound = ({
                                 <i className="fa-solid fa-circle-info"></i> View
                                 Details
                               </button>
+                              )}
                             </div>
                           </div>
                         </td>
