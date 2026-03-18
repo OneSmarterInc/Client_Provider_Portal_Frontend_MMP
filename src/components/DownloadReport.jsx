@@ -89,7 +89,13 @@ const DownloadReport = ({ isOpen, setIsDownloadReportOpen, ssn }) => {
         (claim.CHHDST === "O" && "Open") ||
         (claim.CHHDST === "R" && "Ready to release"),
       `$${claim.CHMM$ || "0.00"}`,
-      `$${claim.BHCAMT || "0.00"}`,
+      `$${(
+        (parseFloat(claim.CHCOPA) || 0) +
+        (parseFloat(claim["CHCO$"]) || 0) +
+        (parseFloat(claim.CHHOSD) || 0) +
+        (parseFloat(claim.CHPCPD) || 0) +
+        (parseFloat(claim["CHDRC$"]) || 0)
+      ).toFixed(2)}`,
     ]);
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);

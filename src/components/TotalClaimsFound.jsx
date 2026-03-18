@@ -108,6 +108,19 @@ const TotalClaimsFound = ({
     if (!sortConfig.key) return filteredData;
 
     return [...filteredData].sort((a, b) => {
+      // Handle calculated Member RESP sort
+      if (sortConfig.key === "MEMBER_RESP") {
+        const calcResp = (c) =>
+          (parseFloat(c.CHCOPA) || 0) +
+          (parseFloat(c["CHCO$"]) || 0) +
+          (parseFloat(c.CHHOSD) || 0) +
+          (parseFloat(c.CHPCPD) || 0) +
+          (parseFloat(c["CHDRC$"]) || 0);
+        const aVal = calcResp(a);
+        const bVal = calcResp(b);
+        return sortConfig.direction === "asc" ? aVal - bVal : bVal - aVal;
+      }
+
       // Handle null/undefined values
       const aValue = a[sortConfig.key] || "";
       const bValue = b[sortConfig.key] || "";
@@ -214,7 +227,13 @@ const TotalClaimsFound = ({
       claim?.["EMMEM#"]?.trim() || "-",
       `$${claim.CHCLM$ || "-"}`,
       `$${claim.CHMM$ || "0.00"}`,
-      `$${claim.BHCAMT || "0.00"}`,
+      `$${(
+        (parseFloat(claim.CHCOPA) || 0) +
+        (parseFloat(claim["CHCO$"]) || 0) +
+        (parseFloat(claim.CHHOSD) || 0) +
+        (parseFloat(claim.CHPCPD) || 0) +
+        (parseFloat(claim["CHDRC$"]) || 0)
+      ).toFixed(2)}`,
       statusMap[claim.CHHDST] || claim.CHHDST || "-",
     ]);
 
@@ -433,10 +452,10 @@ const TotalClaimsFound = ({
                   </th>
                   <th
                     className="text-center py-2 cursor-pointer hover:bg-gray-50"
-                    onClick={() => requestSort("BHCAMT")}
+                    onClick={() => requestSort("MEMBER_RESP")}
                   >
                     <div className="flex items-center justify-center">
-                      Member <br /> RESP{renderSortIndicator("BHCAMT")}
+                      Member <br /> RESP{renderSortIndicator("MEMBER_RESP")}
                     </div>
                   </th>
                   <th
@@ -511,7 +530,13 @@ const TotalClaimsFound = ({
                         ${claim.CHMM$ || "0.00"}
                       </td>
                       <td className="py-3 text-center">
-                        ${claim.BHCAMT || "0.00"}
+                        ${(
+                          (parseFloat(claim.CHCOPA) || 0) +
+                          (parseFloat(claim["CHCO$"]) || 0) +
+                          (parseFloat(claim.CHHOSD) || 0) +
+                          (parseFloat(claim.CHPCPD) || 0) +
+                          (parseFloat(claim["CHDRC$"]) || 0)
+                        ).toFixed(2)}
                       </td>
                       <td
                         className={`py-3 text-center ${
