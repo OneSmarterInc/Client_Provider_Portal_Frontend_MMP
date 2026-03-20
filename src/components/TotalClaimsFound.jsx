@@ -507,11 +507,13 @@ const TotalClaimsFound = ({
                         ).padStart(2, "0")}-${String(claim.CHFRDY)}` || "-"}
                       </td>
                       <td className="py-3 text-center">
-                        {(claim.CHPRDM &&
-                          `${String(claim.CHPRDM).padStart(2, "0")}-${String(
-                            claim.CHPRDD
-                          ).padStart(2, "0")}-${String(claim.CHPRDY)}`) ||
-                          "-"}
+                        {claim.CHHDST === "V"
+                          ? "-"
+                          : (claim.CHPRDM &&
+                              `${String(claim.CHPRDM).padStart(2, "0")}-${String(
+                                claim.CHPRDD
+                              ).padStart(2, "0")}-${String(claim.CHPRDY)}`) ||
+                            "-"}
                       </td>
                       <td className="py-3 text-center">
                         {claim.CHCLTP || "-"}

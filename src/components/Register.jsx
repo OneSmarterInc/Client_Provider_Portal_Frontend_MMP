@@ -21,12 +21,14 @@ const InputField = ({
   onIconClick,
   showPasswordToggle = false,
   isPasswordVisible = false,
+  note,
 }) => {
   return (
     <div className="flex flex-col w-full">
       <label htmlFor={label} className="text-gray-500 text-sm">
         {name} <span className="text-red-600">*</span>
       </label>
+      {note && <span className="text-gray-400 text-xs">{note}</span>}
       <div
         className={`flex flex-row bg-white border-2 rounded justify-between h-10 p-2 ${
           disabled ? "opacity-50" : ""
@@ -492,8 +494,8 @@ const Register = () => {
             <div className="flex-1" />
           </div>
 
-          <div className="flex flex-row gap-6 w-full">
-            <InputField label="password" name="Password (must contain min 8 char, one uppercase, one lowercase, one number and one special character" placeholder="Enter Password (min 8 chars)" icon={Eye} disabled={!isReady} value={formData.password} onChange={handleChange} error={errors.password} type={isPasswordVisible ? "text" : "password"} showPasswordToggle={true} isPasswordVisible={isPasswordVisible} onIconClick={togglePasswordVisibility} />
+          <div className="flex flex-row gap-6 w-full items-end">
+            <InputField label="password" name="Password" note="(min 8 chars, one uppercase, one lowercase, one number & one special character)" placeholder="Enter Password" icon={Eye} disabled={!isReady} value={formData.password} onChange={handleChange} error={errors.password} type={isPasswordVisible ? "text" : "password"} showPasswordToggle={true} isPasswordVisible={isPasswordVisible} onIconClick={togglePasswordVisibility} />
             <InputField label="confirm_password" name="Confirm Password" placeholder="Confirm Password" icon={Check} disabled={!isReady} value={formData.confirm_password} onChange={handleChange} error={errors.confirm_password} type={isConfirmPasswordVisible ? "text" : "password"} showPasswordToggle={true} isPasswordVisible={isConfirmPasswordVisible} onIconClick={toggleConfirmPasswordVisibility} />
           </div>
         </div>
