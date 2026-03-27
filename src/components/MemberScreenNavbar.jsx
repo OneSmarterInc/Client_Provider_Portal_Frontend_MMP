@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ProviderSwitcher from "./ProviderSwitcher";
 import ProviderSettings from "./ProviderSettings";
+import mmplogo from "../assets/mmplogo.jpg";
 
 const MemberScreenNavbar = ({
   setIsOpenList,
@@ -47,7 +48,7 @@ const MemberScreenNavbar = ({
             <ProviderSwitcher />
             {/* <button onClick={() => navigate("/watchlist")}>Watchlist</button> */}
             <img
-              src="/images/Header/img-11.png"
+              src={mmplogo}
               alt="Profile"
               className="w-10 cursor-pointer"
               aria-label="User profile"

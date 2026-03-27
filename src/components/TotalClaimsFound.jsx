@@ -7,6 +7,8 @@ import MyContext from "../ContextApi/MyContext";
 import * as XLSX from "xlsx";
 import LoadingMessage from "./LoadingMessage";
 import ViewEOBDownload from "./ViewEOBDownload";
+import { toast } from "react-toastify";
+import { Mail, X, Send, Loader2 } from "lucide-react";
 const TotalClaimsFound = ({
   activeStatusFilter,
   activeMonthFilter,
@@ -21,11 +23,20 @@ const TotalClaimsFound = ({
 
   const [expandedRow, setExpandedRow] = useState(null);
   const [expandedRows, setExpandedRows] = useState({});
+  const [checkData, setCheckData] = useState(null);
+  const [checkDataLoading, setCheckDataLoading] = useState(false);
   const [selectedRowData, setSelectedRowData] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [filterFromDate, setFromDate] = useState("");
   const [filterToDate, setToDate] = useState("");
+
+  // Email modal state
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailClaim, setEmailClaim] = useState(null);
+  const [emailSubject, setEmailSubject] = useState("Claim Details");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
 
   const toggleRow = (index) => {
     setExpandedRows((prev) => ({
@@ -73,9 +84,25 @@ const TotalClaimsFound = ({
     }
   };
 
-  const handleRowClick = (index, claim) => {
-    setExpandedRow(expandedRow === index ? null : index);
-    setSelectedRowData(expandedRow === index ? null : claim);
+  const handleRowClick = async (index, claim) => {
+    if (expandedRow === index) {
+      setExpandedRow(null);
+      setSelectedRowData(null);
+      setCheckData(null);
+    } else {
+      setExpandedRow(index);
+      setSelectedRowData(claim);
+      setCheckData(null);
+      setCheckDataLoading(true);
+      try {
+        const res = await axios.get(`${api}/fetch-check-data/?claim_no=${claim?.["CHCLM#"]}`);
+        setCheckData(res.data);
+      } catch {
+        setCheckData([]);
+      } finally {
+        setCheckDataLoading(false);
+      }
+    }
   };
 
   const [filteredData, setFilteredData] = useState(dataFromCLMHP);
@@ -156,7 +183,7 @@ const TotalClaimsFound = ({
 
   useEffect(() => {
     let filteredClaims = dataFromCLMHP?.filter((claim) =>
-      ["CHCLM#", "DATE", "CHCLTP", "EMMEM#", "CHCLM$", "CHSTTY"].some((key) =>
+      ["CHCLM#", "DATE", "CHCLTP", "EMMEM#", "PATIENT_NAME", "CHCLM$", "CHSTTY"].some((key) =>
         claim[key]
           ?.toString()
           .toLowerCase()
@@ -247,6 +274,60 @@ const TotalClaimsFound = ({
   const handleEOBClick = (claim_no) => {
     setEobClaimNO(claim_no);
     setIsEOBOpen(!isEOBOpen);
+  };
+
+  const statusMap = {
+    A: "Paid", D: "Deny", E: "Drop", H: "Hold", O: "Open",
+    P: "Pend", R: "RTP", S: "PDO", T: "Audt", U: "Inpr", V: "Void",
+  };
+
+  const handleEmailClick = (claim) => {
+    setEmailClaim(claim);
+    setEmailSubject(`Claim Details - ${claim?.["CHCLM#"] || ""}`);
+    setEmailMessage("");
+    setEmailModalOpen(true);
+  };
+
+  const handleSendEmail = async () => {
+    setEmailSending(true);
+    try {
+      const serviceDate = `${String(emailClaim.CHFRDM).padStart(2, "0")}-${String(emailClaim.CHFRDD).padStart(2, "0")}-${String(emailClaim.CHFRDY)}`;
+      const paidDate = emailClaim.CHHDST === "V" ? "-" : (emailClaim.CHPRDM ? `${String(emailClaim.CHPRDM).padStart(2, "0")}-${String(emailClaim.CHPRDD).padStart(2, "0")}-${String(emailClaim.CHPRDY)}` : "-");
+      const memberResp = (
+        (parseFloat(emailClaim.CHCOPA) || 0) +
+        (parseFloat(emailClaim["CHCO$"]) || 0) +
+        (parseFloat(emailClaim.CHHOSD) || 0) +
+        (parseFloat(emailClaim.CHPCPD) || 0) +
+        (parseFloat(emailClaim["CHDRC$"]) || 0)
+      ).toFixed(2);
+
+      await axios.post(`${api}/send-claim-email/`, {
+        subject: emailSubject,
+        message: emailMessage,
+        claim_data: {
+          claim_no: emailClaim?.["CHCLM#"] || "-",
+          service_date: serviceDate,
+          paid_date: paidDate,
+          claim_type: emailClaim.CHCLTP || "-",
+          member_id: emailClaim?.["EMMEM#"]?.trim() || "-",
+          total: emailClaim.CHCLM$ || "0.00",
+          plan_paid: emailClaim.CHMM$ || "0.00",
+          member_resp: memberResp,
+          status: statusMap[emailClaim.CHHDST] || emailClaim.CHHDST,
+        },
+        provider_info: {
+          name: user?.name || "-",
+          email: user?.email || "-",
+          provider_no: provider_no || "-",
+        },
+      });
+      toast.success("Email sent successfully!");
+      setEmailModalOpen(false);
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Failed to send email.");
+    } finally {
+      setEmailSending(false);
+    }
   };
 
   // Pagination
@@ -384,6 +465,11 @@ const TotalClaimsFound = ({
                   >
                     <div className="flex items-center justify-center">EOB</div>
                   </th>
+                  <th className="text-center py-2">
+                    <div className="flex items-center justify-center">
+                     Email
+                    </div>
+                  </th>
                   <th
                     className="text-center py-2 cursor-pointer hover:bg-gray-50"
                     onClick={() => requestSort("CHCLM#")}
@@ -432,7 +518,6 @@ const TotalClaimsFound = ({
                       MEM ID {renderSortIndicator("EMMEM#")}
                     </div>
                   </th>
-
                   <th
                     className="text-center py-2 cursor-pointer hover:bg-gray-50"
                     onClick={() => requestSort("CHCLM$")}
@@ -498,6 +583,13 @@ const TotalClaimsFound = ({
                       >
                         EOB
                       </td>
+                      <td
+                        onClick={() => handleEmailClick(claim)}
+                        className="py-3 text-center cursor-pointer text-[#0486A5] hover:text-sky-400"
+                        title="Send claim details via email"
+                      >
+                        <Mail className="w-4 h-4 mx-auto" />
+                      </td>
                       <td className="py-3 text-center">
                         {claim?.["CHCLM#"] || "-"}
                       </td>
@@ -524,7 +616,6 @@ const TotalClaimsFound = ({
                       <td className="py-3 text-center">
                         {claim?.["EMMEM#"]?.trim() || "-"}
                       </td>
-
                       <td className="py-3 text-center">
                         ${claim.CHCLM$ || "0.00"}
                       </td>
@@ -585,120 +676,108 @@ const TotalClaimsFound = ({
                     </tr>
 
                     {expandedRow === index && selectedRowData && (
-                      <tr className="bg-gray-100 border-t">
-                        <td colSpan="10" className="px-4 py-2">
-                          <div className="p-3 pt-0 rounded-lg shadow-sm bg-white">
-                            <div className="grid grid-cols-2 gap-10">
-                              <div>
-                                <p className="text-sm font-medium text-gray-700 cursor-pointer hover:bg-white ">
-                                  <strong>Claim Number:</strong>{" "}
-                                  {selectedRowData?.["CHCLM#"] || ""}{" "}
-                                </p>
-                              </div>
-                              <div className="text-start">
-                                <p className="text-xs text-[#0486A5] font-bold">
-                                  <strong>Diagnosis Codes:</strong>{" "}
-                                  {(() => {
-                                    const codes = [
-                                      selectedRowData?.CHDIAG,
-                                      selectedRowData?.CHDIA2,
-                                      selectedRowData?.CHDIA3,
-                                      selectedRowData?.CHDIA4,
-                                      selectedRowData?.CHDIA5,
-                                    ].filter((code) => code?.trim());
+                      <tr>
+                        <td colSpan="12" className="py-2 px-3 bg-gray-50/50">
+                          <div className="w-[550px] bg-white border border-gray-200 rounded-lg shadow-sm text-xs text-black">
 
-                                    return codes?.length > 0
-                                      ? codes.join(", ")
-                                      : "";
-                                  })()}
-                                </p>
+                            {/* Header */}
+                            <div className="bg-[#0486A5] rounded-t-lg px-4 py-2 flex items-center justify-between">
+                              <div className="text-white text-xs">
+                                <span>Patient: <span className="font-semibold">{selectedRowData?.PATIENT_NAME || "-"}</span></span>
+                                <span className="mx-1.5">|</span>
+                                <span>{selectedRowData?.MEMBER_NAME ? "Dependent" : "Member"}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="bg-white text-[#0486A5] text-[10px] font-semibold rounded px-1.5 py-0.5">
+                                  {selectedRowData?.CHHDST ? { A: "Paid", D: "Deny", E: "Drop", H: "Hold", O: "Open", P: "Pend", R: "RTP", S: "PDO", T: "Audt", U: "Inpr", V: "Void" }[selectedRowData.CHHDST] || selectedRowData.CHHDST : "-"}
+                                </span>
+                                {JSON.parse(localStorage.getItem("user"))?.is_admin && (
+                                  <button onClick={() => setIsShowTotalClaimsDetailsOpen(true)} className="text-[10px] text-white border border-white rounded px-1.5 py-0.5 hover:bg-white hover:text-[#0486A5] transition-colors">
+                                    <i className="fa-solid fa-circle-info mr-0.5"></i>Details
+                                  </button>
+                                )}
                               </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-x-10 gap-y-2 mt-3 text-xs text-gray-700">
-                              <p className="text-gray-600 text-xs ">
-                                <strong>Plan:</strong>{" "}
-                                {selectedRowData?.CHPLAN || ""} |
-                                <strong> Class:</strong>{" "}
-                                {selectedRowData?.CHBNFT || ""}
-                              </p>
-                              <p>
-                                <strong>Claim Amount:</strong> $
-                                {selectedRowData?.CHCLM$ || "0.00"}
-                              </p>
-                              <p className="text-xs text-gray-700">
-                                <strong>Provider No:</strong>{" "}
-                                {selectedRowData?.CHPROV || ""}
-                              </p>
-                              <p>
-                                <strong>Patient ID:</strong>{" "}
-                                {selectedRowData?.CHPATI || ""}
-                              </p>
-                              <p>
-                                <strong>Primary Carrier:</strong>{" "}
-                                {selectedRowData?.NONE || ""}
-                              </p>
-                              <p>
-                                <strong>Payment Amount:</strong> $
-                                {selectedRowData?.CHMM$ || "0.00"}
-                              </p>
-                              <p>
-                                <strong>Receipt Date:</strong>{" "}
-                                {selectedRowData?.CHRCDM
-                                  ? `${selectedRowData?.CHRCDM}-${selectedRowData?.CHRCDD}-${selectedRowData?.CHRCDY}`
-                                  : `${selectedRowData?.["Receipt Date"]}`}
-                              </p>
-                              <p>
-                                <strong>Processed Date:</strong>{" "}
-                                {selectedRowData?.CHPRDM
-                                  ? `${selectedRowData?.CHPRDM}-${selectedRowData?.CHPRDD}-${selectedRowData?.CHPRDY}`
-                                  : `-`}
-                              </p>
-                              <p>
-                                <strong>Assign:</strong>{" "}
-                                {selectedRowData?.CHEDI || ""}
-                              </p>
-                              <p>
-                                <strong>Status:</strong>{" "}
-                                {selectedRowData?.CHHDST || ""}
-                              </p>
-                              <p>
-                                <strong>Hos/MM Ded:</strong> $
-                                {selectedRowData?.CHHOSD || "0.00"}
-                              </p>
-                              <p>
-                                <strong>PCP Deductible:</strong> $
-                                {selectedRowData?.CHPCPD || "0.00"}
-                              </p>
-                              <p>
-                                <strong>Co-Insurance:</strong> $
-                                {selectedRowData?.["CHCO$"] || "0.00"}
-                              </p>
-                              <p>
-                                <strong>Co-Pay:</strong> $
-                                {selectedRowData?.CHCOPA || "0.00"}
-                              </p>
-                              <p>
-                                <strong>Over R & C:</strong> $
-                                {selectedRowData?.["CHDRC$"] || "0.00"}
-                              </p>
-                            </div>
-                            <div className="flex justify-between items-center text-xs text-gray-700 my-2">
-                              <p className="grid-cols-2 text-xs text-gray-700">
-                                <strong>Description:</strong>{" "}
-                                {selectedRowData?.CHCLEX || ""}
-                              </p>{" "}
-                              {JSON.parse(localStorage.getItem("user"))?.is_admin && (
-                              <button
-                                onClick={() =>
-                                  setIsShowTotalClaimsDetailsOpen(true)
-                                }
-                                className="rounded-full border border-gray-300 text-gray-600 py-1 px-3 text-xs hover:bg-[#0486A5] hover:text-white transition-colors"
-                              >
-                                <i className="fa-solid fa-circle-info"></i> View
-                                Details
-                              </button>
-                              )}
-                            </div>
+
+                            {/* Body — uniform 3-col table layout */}
+                            <table className="w-full text-xs text-black">
+                              <tbody>
+                                {/* Row 1 */}
+                                <tr className="border-b border-gray-100">
+                                  <td className="px-4 py-1.5">Patient ID: {selectedRowData?.CHPATI || "-"}</td>
+                                  <td className="px-4 py-1.5">Provider: {selectedRowData?.CHPROV || "-"}</td>
+                                  <td className="px-4 py-1.5">Type: {selectedRowData?.CHCLTP || "-"}</td>
+                                </tr>
+                                {/* Row 2 */}
+                                <tr className="border-b border-gray-100">
+                                  <td className="px-4 py-1.5">Plan/Class: {selectedRowData?.CHPLAN || "-"}/{selectedRowData?.CHBNFT || "-"}</td>
+                                  <td className="px-4 py-1.5">Assign: {selectedRowData?.CHEDI || "-"}</td>
+                                  <td className="px-4 py-1.5">Carrier: {selectedRowData?.NONE || "-"}</td>
+                                </tr>
+                                {/* Row 2.5 — Member name for dependents */}
+                                {selectedRowData?.MEMBER_NAME && (
+                                  <tr className="border-b border-gray-100">
+                                    <td className="px-4 py-1.5" colSpan="3">Member Name: {selectedRowData.MEMBER_NAME}</td>
+                                  </tr>
+                                )}
+                                {/* Row 3 — Dates */}
+                                <tr className="border-b border-gray-100">
+                                  <td className="px-4 py-1.5">Receipt: {selectedRowData?.CHRCDM ? `${String(selectedRowData.CHRCDM).padStart(2,"0")}-${String(selectedRowData.CHRCDD).padStart(2,"0")}-${selectedRowData.CHRCDY}` : selectedRowData?.["Receipt Date"] || "-"}</td>
+                                  <td className="px-4 py-1.5">Processed: {selectedRowData?.CHPRDM ? `${String(selectedRowData.CHPRDM).padStart(2,"0")}-${String(selectedRowData.CHPRDD).padStart(2,"0")}-${selectedRowData.CHPRDY}` : "-"}</td>
+                                  <td className="px-4 py-1.5"></td>
+                                </tr>
+                                {/* Row 4–5 — Financials */}
+                                <tr className="border-b border-gray-100">
+                                  <td className="px-4 py-1.5">Claim: ${selectedRowData?.CHCLM$ || "0.00"}</td>
+                                  <td className="px-4 py-1.5">Paid: ${selectedRowData?.CHMM$ || "0.00"}</td>
+                                  <td className="px-4 py-1.5">Co-Pay: ${selectedRowData?.CHCOPA || "0.00"}</td>
+                                </tr>
+                                <tr className="border-b border-gray-100">
+                                  <td className="px-4 py-1.5">Co-Ins: ${selectedRowData?.["CHCO$"] || "0.00"}</td>
+                                  <td className="px-4 py-1.5">Hos/MM: ${selectedRowData?.CHHOSD || "0.00"}</td>
+                                  <td className="px-4 py-1.5">PCP Ded: ${selectedRowData?.CHPCPD || "0.00"}</td>
+                                </tr>
+                                <tr className="border-b border-gray-100">
+                                  <td className="px-4 py-1.5">Over R&C: ${selectedRowData?.["CHDRC$"] || "0.00"}</td>
+                                  <td className="px-4 py-1.5"></td>
+                                  <td className="px-4 py-1.5"></td>
+                                </tr>
+                                {/* Row 6 — Diagnosis */}
+                                {(() => {
+                                  const codes = [selectedRowData?.CHDIAG, selectedRowData?.CHDIA2, selectedRowData?.CHDIA3, selectedRowData?.CHDIA4, selectedRowData?.CHDIA5].filter(c => c?.trim());
+                                  return codes.length > 0 ? (
+                                    <tr className="border-b border-gray-100">
+                                      <td className="px-4 py-1.5" colSpan="3">Diagnosis: {codes.join(", ")}</td>
+                                    </tr>
+                                  ) : null;
+                                })()}
+                                {/* Row 7 — Check */}
+                                {checkDataLoading ? (
+                                  <tr className="border-b border-gray-100">
+                                    <td className="px-4 py-1.5 italic" colSpan="3">Loading check info...</td>
+                                  </tr>
+                                ) : checkData && checkData.length > 0 ? (
+                                  checkData.map((chk, i) => (
+                                    <tr key={i} className="border-b border-gray-100">
+                                      <td className="px-4 py-1.5">Check #: {chk?.["CKCHK#"] || "-"}</td>
+                                      <td className="px-4 py-1.5">Check Date: {chk?.check_date || "-"}</td>
+                                      <td className="px-4 py-1.5">Check Status: {chk?.check_status || "-"}</td>
+                                    </tr>
+                                  ))
+                                ) : (
+                                  <tr className="border-b border-gray-100">
+                                    <td className="px-4 py-1.5" colSpan="3">No check data</td>
+                                  </tr>
+                                )}
+                                {/* Row 8 — Description */}
+                                {selectedRowData?.CHCLEX && (
+                                  <tr>
+                                    <td className="px-4 py-1.5" colSpan="3">Description: {selectedRowData.CHCLEX}</td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+
                           </div>
                         </td>
                       </tr>
@@ -751,6 +830,95 @@ const TotalClaimsFound = ({
           onClose={() => setIsEOBOpen(false)}
           claim_no={EobClaimNO}
         />
+      )}
+
+      {/* Email Modal */}
+      {emailModalOpen && emailClaim && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+          <div className="bg-white rounded-2xl w-[95%] max-w-lg shadow-lg overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between bg-[#0486A5] px-6 py-4">
+              <h2 className="text-white font-semibold text-lg flex items-center gap-2">
+                <Mail className="w-5 h-5" /> Send Claim Email
+              </h2>
+              <button onClick={() => setEmailModalOpen(false)} className="text-white hover:text-gray-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Claim Details Preview */}
+              <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-1">
+                <p className="font-semibold text-[#0486A5] mb-2">Claim Details</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                  <p><span className="text-gray-500">Claim No:</span> <strong>{emailClaim?.["CHCLM#"]}</strong></p>
+                  <p><span className="text-gray-500">Status:</span> <strong>{statusMap[emailClaim.CHHDST] || emailClaim.CHHDST}</strong></p>
+                  <p><span className="text-gray-500">Service Date:</span> {`${String(emailClaim.CHFRDM).padStart(2, "0")}-${String(emailClaim.CHFRDD).padStart(2, "0")}-${String(emailClaim.CHFRDY)}`}</p>
+                  <p><span className="text-gray-500">Paid Date:</span> {emailClaim.CHHDST === "V" ? "-" : (emailClaim.CHPRDM ? `${String(emailClaim.CHPRDM).padStart(2, "0")}-${String(emailClaim.CHPRDD).padStart(2, "0")}-${String(emailClaim.CHPRDY)}` : "-")}</p>
+                  <p><span className="text-gray-500">Type:</span> {emailClaim.CHCLTP || "-"}</p>
+                  <p><span className="text-gray-500">Member ID:</span> {emailClaim?.["EMMEM#"]?.trim() || "-"}</p>
+                  <p><span className="text-gray-500">Total:</span> ${emailClaim.CHCLM$ || "0.00"}</p>
+                  <p><span className="text-gray-500">Plan Paid:</span> ${emailClaim.CHMM$ || "0.00"}</p>
+                </div>
+              </div>
+
+              {/* Email Fields */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+                <input
+                  type="email"
+                  value="avinashkalmegh93@gmail.com"
+                  disabled
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0486A5]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Message (optional)</label>
+                <textarea
+                  value={emailMessage}
+                  onChange={(e) => setEmailMessage(e.target.value)}
+                  rows={3}
+                  placeholder="Add a message..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0486A5] resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-3 px-6 py-4 border-t">
+              <button
+                onClick={() => setEmailModalOpen(false)}
+                className="px-4 py-2 text-gray-600 font-medium hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendEmail}
+                disabled={emailSending}
+                className={`flex items-center gap-2 px-5 py-2 rounded-lg text-white font-medium ${
+                  emailSending ? "bg-[#0486A5]/60 cursor-not-allowed" : "bg-[#0486A5] hover:bg-[#047B95]"
+                }`}
+              >
+                {emailSending ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</>
+                ) : (
+                  <><Send className="w-4 h-4" /> Send</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
