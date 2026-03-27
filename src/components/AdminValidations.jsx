@@ -7,6 +7,8 @@ import { CheckCircle, XCircle, Pencil, Trash2, Download, Loader2, Eye } from "lu
 import MyContext from "../ContextApi/MyContext";
 import DeclineRemarkModal from "./DeclineRemarkModal";
 import AdminPasswordResetModal from "./AdminPasswordResetModal";
+import mmplogo from "../assets/mmplogo.jpg";
+
 
 const AdminValidations = () => {
   const { api } = useContext(MyContext);
@@ -804,7 +806,7 @@ const AdminValidations = () => {
                 Welcome, {admin?.email}!
               </h3>
               <img
-                src="/images/Header/img-11.png"
+                src={mmplogo}
                 alt="Profile"
                 className="w-8 sm:w-10 flex-shrink-0"
                 aria-label="User profile"
