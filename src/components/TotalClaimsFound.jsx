@@ -678,7 +678,7 @@ const TotalClaimsFound = ({
                     {expandedRow === index && selectedRowData && (
                       <tr>
                         <td colSpan="12" className="py-2 px-3 bg-gray-50/50">
-                          <div className="w-[550px] bg-white border border-gray-200 rounded-lg shadow-sm text-xs text-black">
+                          <div className="w-full bg-white border border-gray-200 rounded-lg shadow-sm text-xs text-black">
 
                             {/* Header */}
                             <div className="bg-[#0486A5] rounded-t-lg px-4 py-2 flex items-center justify-between">
@@ -867,7 +867,7 @@ const TotalClaimsFound = ({
                 <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
                 <input
                   type="email"
-                  value="providers@tech.mmpplans.com"
+                  value="providers@mmpplans.com"
                   disabled
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
                 />

@@ -40,11 +40,17 @@ const LoginLogsTable = () => {
     >
       <div className="w-full bg-transparent mb-7">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-4 gap-4">
-          {/* Left Section: Title, Search, Refresh */}
+          {/* Left Section: Back Arrow, Title */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5 w-full sm:w-auto">
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">
-              Login Logs
-            </h2>
+            <div className="flex items-center gap-3">
+              <i
+                className="fa-solid fa-arrow-left text-lg text-gray-700 cursor-pointer hover:text-[#0486A5] transition-colors"
+                onClick={() => navigate(-1)}
+              ></i>
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">
+                Login Logs
+              </h2>
+            </div>
             {/* <div className="flex justify-between gap-4 items-center w-full md:w-auto">
               <div className="w-full sm:w-auto">
                 <input
@@ -66,12 +72,12 @@ const LoginLogsTable = () => {
 
           {/* Right Section: User Info */}
           <div className="flex items-center gap-3 mt-3 md:mt-0">
-            <div
+            {/* <div
               className="w-28 text-sm cursor-pointer bg-cyan-600 text-gray-50 p-1  text-center rounded-md"
               onClick={() => navigate("/admin")}
             >
               Verify
-            </div>
+            </div> */}
             <h3 className="font-inter text-sm text-black">
               Welcome, {user?.email}!
             </h3>
