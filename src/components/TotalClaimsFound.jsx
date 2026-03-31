@@ -15,11 +15,13 @@ const TotalClaimsFound = ({
   setActiveMonthFilter,
   setActiveStatusFilter,
   setActiveMonthName,
+  providerNo: providerNoProp,
+  isAdminView = false,
 }) => {
   const { api, isEOBOpen, setIsEOBOpen, activeProvider } = useContext(MyContext);
   const [dataFromCLMHP, setDataFromCLMHP] = useState();
   const user = JSON.parse(localStorage.getItem("user"));
-  const provider_no = activeProvider?.provider_no || user?.provider_no;
+  const provider_no = providerNoProp || activeProvider?.provider_no || user?.provider_no;
 
   const [expandedRow, setExpandedRow] = useState(null);
   const [expandedRows, setExpandedRows] = useState({});
@@ -34,6 +36,7 @@ const TotalClaimsFound = ({
   // Email modal state
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [emailClaim, setEmailClaim] = useState(null);
+  const [emailRecipient, setEmailRecipient] = useState("akshay.kumar@onesmarter.com");
   const [emailSubject, setEmailSubject] = useState("Claim Details");
   const [emailMessage, setEmailMessage] = useState("");
   const [emailSending, setEmailSending] = useState(false);
@@ -48,7 +51,7 @@ const TotalClaimsFound = ({
   useEffect(() => {
     fetchCHCLMApiData();
     fetchOriginalData();
-  }, [activeProvider]);
+  }, [activeProvider, providerNoProp]);
 
   const fetchCHCLMApiData = async () => {
     // Don't fetch if dates aren't set
@@ -302,6 +305,7 @@ const TotalClaimsFound = ({
       ).toFixed(2);
 
       await axios.post(`${api}/send-claim-email/`, {
+        recipient_email: emailRecipient,
         subject: emailSubject,
         message: emailMessage,
         claim_data: {
@@ -465,11 +469,13 @@ const TotalClaimsFound = ({
                   >
                     <div className="flex items-center justify-center">EOB</div>
                   </th>
+                  {!isAdminView && (
                   <th className="text-center py-2">
                     <div className="flex items-center justify-center">
                      Email
                     </div>
                   </th>
+                  )}
                   <th
                     className="text-center py-2 cursor-pointer hover:bg-gray-50"
                     onClick={() => requestSort("CHCLM#")}
@@ -583,6 +589,7 @@ const TotalClaimsFound = ({
                       >
                         EOB
                       </td>
+                      {!isAdminView && (
                       <td
                         onClick={() => handleEmailClick(claim)}
                         className="py-3 text-center cursor-pointer text-[#0486A5] hover:text-sky-400"
@@ -590,6 +597,7 @@ const TotalClaimsFound = ({
                       >
                         <Mail className="w-4 h-4 mx-auto" />
                       </td>
+                      )}
                       <td className="py-3 text-center">
                         {claim?.["CHCLM#"] || "-"}
                       </td>
@@ -833,7 +841,7 @@ const TotalClaimsFound = ({
       )}
 
       {/* Email Modal */}
-      {emailModalOpen && emailClaim && (
+      {!isAdminView && emailModalOpen && emailClaim && (
         <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
           <div className="bg-white rounded-2xl w-[95%] max-w-lg shadow-lg overflow-hidden">
             {/* Header */}
@@ -867,9 +875,9 @@ const TotalClaimsFound = ({
                 <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
                 <input
                   type="email"
-                  value="providers@mmpplans.com"
-                  disabled
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+                  value={emailRecipient}
+                  onChange={(e) => setEmailRecipient(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0486A5]"
                 />
               </div>
 

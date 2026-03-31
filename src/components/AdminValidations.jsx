@@ -7,6 +7,7 @@ import { CheckCircle, XCircle, Pencil, Trash2, Download, Loader2, Eye } from "lu
 import MyContext from "../ContextApi/MyContext";
 import DeclineRemarkModal from "./DeclineRemarkModal";
 import AdminPasswordResetModal from "./AdminPasswordResetModal";
+import AdminClaimSearch from "./AdminClaimSearch";
 import mmplogo from "../assets/mmplogo.jpg";
 
 
@@ -17,7 +18,7 @@ const AdminValidations = () => {
   const admin = JSON.parse(localStorage.getItem("user"));
 
   // --- Tab state ---
-  const [mainTab, setMainTab] = useState("providers"); // "providers" | "w9" | "accounts"
+  const [mainTab, setMainTab] = useState("providers"); // "providers" | "w9" | "accounts" | "guests" | "claims"
   const [subTab, setSubTab] = useState("pending"); // "pending" | "history"
 
   const handleMainTabChange = (tab) => {
@@ -74,6 +75,7 @@ const AdminValidations = () => {
   const [editUser, setEditUser] = useState(null);
   const [editUserName, setEditUserName] = useState("");
   const [editUserEmail, setEditUserEmail] = useState("");
+  const [editUserPhone, setEditUserPhone] = useState("");
   const [editUserPassword, setEditUserPassword] = useState("");
   const [editUserLoading, setEditUserLoading] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
@@ -89,6 +91,14 @@ const AdminValidations = () => {
   const [guestDeleteLoading, setGuestDeleteLoading] = useState(null);
   const [showGuestDeleteModal, setShowGuestDeleteModal] = useState(false);
   const [guestDeleteTarget, setGuestDeleteTarget] = useState(null);
+
+  const [claimSearchTaxId, setClaimSearchTaxId] = useState({ taxId: "", ts: 0 });
+
+  const handleTaxIdClick = (taxId) => {
+    setClaimSearchTaxId({ taxId, ts: Date.now() });
+    setMainTab("claims");
+    setSubTab("pending");
+  };
 
   const isGuest = admin?.is_guest && !admin?.is_admin;
 
@@ -340,6 +350,10 @@ const AdminValidations = () => {
       payload.new_email = editUserEmail.trim();
       hasChanges = true;
     }
+    if (editUserPhone.trim() !== (editUser.phone_no || "")) {
+      payload.new_phone = editUserPhone.trim();
+      hasChanges = true;
+    }
     if (editUserPassword.trim()) {
       payload.new_password = editUserPassword.trim();
       hasChanges = true;
@@ -363,6 +377,7 @@ const AdminValidations = () => {
         setEditUser(null);
         setEditUserName("");
         setEditUserEmail("");
+        setEditUserPhone("");
         setEditUserPassword("");
         setShowEditPassword(false);
         fetchAllUserAccounts();
@@ -724,9 +739,19 @@ const AdminValidations = () => {
                 >
                   Create Users
                 </button>
+                <button
+                  onClick={() => handleMainTabChange("claims")}
+                  className={`px-4 py-1 text-xs font-medium rounded-full transition-colors ${
+                    mainTab === "claims"
+                      ? "bg-cyan-600 text-white shadow-sm"
+                      : "text-gray-600 hover:text-gray-800"
+                  }`}
+                >
+                  Search By Tax ID
+                </button>
               </div>
               {/* Sub-tabs */}
-              {mainTab !== "accounts" && mainTab !== "guests" && (
+              {mainTab !== "accounts" && mainTab !== "guests" && mainTab !== "claims" && (
                 <div className="flex gap-1">
                   <button
                     onClick={() => setSubTab("pending")}
@@ -766,7 +791,7 @@ const AdminValidations = () => {
                   <div className="w-full sm:w-auto">
                     <input
                       type="text"
-                      placeholder="Search Email or Phone"
+                      placeholder="Search Name, Email or Phone"
                       className="border border-gray-300 w-full sm:w-auto px-4 placeholder:text-sm py-1 rounded-full text-sm"
                       onChange={(e) => setAccountSearchQuery(e.target.value)}
                       value={accountSearchQuery}
@@ -824,7 +849,11 @@ const AdminValidations = () => {
         </div>
 
         {/* ===== CONTENT ===== */}
-        {mainTab === "accounts" ? (
+        {mainTab === "claims" ? (
+          <div className="bg-white shadow-sm rounded-xl p-6">
+            <AdminClaimSearch initialTaxId={claimSearchTaxId.taxId} searchTrigger={claimSearchTaxId.ts} />
+          </div>
+        ) : mainTab === "accounts" ? (
           /* --- Account Management Tab Content --- */
           allUsersLoading ? (
             <div className="flex justify-center items-center h-64">
@@ -861,6 +890,7 @@ const AdminValidations = () => {
                     ) : (
                       allUsers
                         .filter((u) =>
+                          u.name?.toLowerCase().includes(accountSearchQuery.toLowerCase()) ||
                           u.email?.toLowerCase().includes(accountSearchQuery.toLowerCase()) ||
                           u.phone_no?.toLowerCase().includes(accountSearchQuery.toLowerCase())
                         )
@@ -880,8 +910,13 @@ const AdminValidations = () => {
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-900">
                               {user.provider_numbers?.length > 0 ? [...new Set(user.provider_numbers.map((pn) => pn.provider_no))].map((taxId) => (
-                                <span key={taxId} className="inline-block mr-1 mb-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                                  {taxId}
+                                <span
+                                  key={taxId}
+                                  onClick={() => handleTaxIdClick(taxId)}
+                                  className="inline-block mr-1 mb-1 px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-50 text-cyan-700 border border-cyan-200 cursor-pointer hover:bg-cyan-100 hover:text-cyan-900 hover:border-cyan-400 transition-colors underline underline-offset-2 decoration-cyan-300"
+                                  title="Click to search claims for this Tax ID"
+                                >
+                                  {taxId} <i className="fa-solid fa-arrow-up-right-from-square text-[9px] ml-0.5 no-underline"></i>
                                 </span>
                               )) : <span className="text-gray-400">-</span>}
                             </td>
@@ -898,8 +933,6 @@ const AdminValidations = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                               {isGuest ? (
                                 <span className="text-gray-400 italic text-xs">View Only</span>
-                              ) : user.is_admin ? (
-                                <span className="text-gray-400 italic text-xs">Protected</span>
                               ) : (
                                 <div className="flex justify-center space-x-2">
                                   <button
@@ -907,6 +940,7 @@ const AdminValidations = () => {
                                       setEditUser(user);
                                       setEditUserName(user.name || "");
                                       setEditUserEmail(user.email);
+                                      setEditUserPhone(user.phone_no || "");
                                       setEditUserPassword("");
                                       setShowEditPassword(false);
                                       setShowEditUserModal(true);
@@ -1827,6 +1861,18 @@ const AdminValidations = () => {
                 value={editUserEmail}
                 onChange={(e) => setEditUserEmail(e.target.value)}
                 placeholder="Enter email address"
+                className="w-full border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring focus:ring-cyan-300 text-sm"
+              />
+            </div>
+
+            {/* Phone */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+              <input
+                type="text"
+                value={editUserPhone}
+                onChange={(e) => setEditUserPhone(e.target.value)}
+                placeholder="Enter phone number"
                 className="w-full border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring focus:ring-cyan-300 text-sm"
               />
             </div>
