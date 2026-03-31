@@ -36,7 +36,7 @@ const TotalClaimsFound = ({
   // Email modal state
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [emailClaim, setEmailClaim] = useState(null);
-  const [emailRecipient, setEmailRecipient] = useState("akshay.kumar@onesmarter.com");
+  const [emailRecipient, setEmailRecipient] = useState("providers@mmpplans.com");
   const [emailSubject, setEmailSubject] = useState("Claim Details");
   const [emailMessage, setEmailMessage] = useState("");
   const [emailSending, setEmailSending] = useState(false);
