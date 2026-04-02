@@ -264,7 +264,7 @@ const TotalClaimsFound = ({
         (parseFloat(claim.CHPCPD) || 0) +
         (parseFloat(claim["CHDRC$"]) || 0)
       ).toFixed(2)}`,
-      statusMap[claim.CHHDST] || claim.CHHDST || "-",
+      (claim.CHHDST === "V" && claim.VOID_REASON) ? claim.VOID_REASON : (statusMap[claim.CHHDST] || claim.CHHDST || "-"),
     ]);
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
@@ -656,19 +656,21 @@ const TotalClaimsFound = ({
                           }[claim.CHHDST] || "text-black"
                         }`}
                       >
-                        {{
-                          A: "Paid",
-                          D: "Deny",
-                          E: "Drop",
-                          H: "Hold",
-                          O: "Open",
-                          P: "Pend",
-                          R: "RTP",
-                          S: "PDO",
-                          T: "Audt",
-                          U: "Inpr",
-                          V: "Void",
-                        }[claim.CHHDST] || claim.CHHDST}
+                        {claim.CHHDST === "V" && claim.VOID_REASON
+                          ? claim.VOID_REASON
+                          : {
+                              A: "Paid",
+                              D: "Deny",
+                              E: "Drop",
+                              H: "Hold",
+                              O: "Open",
+                              P: "Pend",
+                              R: "RTP",
+                              S: "PDO",
+                              T: "Audt",
+                              U: "Inpr",
+                              V: "Void",
+                            }[claim.CHHDST] || claim.CHHDST}
                       </td>
 
                       <td
@@ -697,7 +699,7 @@ const TotalClaimsFound = ({
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="bg-white text-[#0486A5] text-[10px] font-semibold rounded px-1.5 py-0.5">
-                                  {selectedRowData?.CHHDST ? { A: "Paid", D: "Deny", E: "Drop", H: "Hold", O: "Open", P: "Pend", R: "RTP", S: "PDO", T: "Audt", U: "Inpr", V: "Void" }[selectedRowData.CHHDST] || selectedRowData.CHHDST : "-"}
+                                  {selectedRowData?.CHHDST ? (selectedRowData.CHHDST === "V" && selectedRowData.VOID_REASON ? selectedRowData.VOID_REASON : ({ A: "Paid", D: "Deny", E: "Drop", H: "Hold", O: "Open", P: "Pend", R: "RTP", S: "PDO", T: "Audt", U: "Inpr", V: "Void" }[selectedRowData.CHHDST] || selectedRowData.CHHDST)) : "-"}
                                 </span>
                                 {JSON.parse(localStorage.getItem("user"))?.is_admin && (
                                   <button onClick={() => setIsShowTotalClaimsDetailsOpen(true)} className="text-[10px] text-white border border-white rounded px-1.5 py-0.5 hover:bg-white hover:text-[#0486A5] transition-colors">
