@@ -679,7 +679,7 @@ const AdminValidations = () => {
       }}
       className=" min-h-screen"
     >
-      <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      <div className="p-4 md:p-8 max-w-[95%] mx-auto">
         <div className="w-full bg-transparent mb-7">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-4 gap-4">
             {/* Left Section: Title, Tabs, Search, Refresh */}
