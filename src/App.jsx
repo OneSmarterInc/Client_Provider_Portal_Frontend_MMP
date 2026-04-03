@@ -14,6 +14,7 @@ import MyContext from "./ContextApi/MyContext";
 import ViewEOBDownload from "./components/ViewEOBDownload";
 import ForgotPasswordFlow from "./components/ForgotPasswordFlow";
 import NewProviderRegister from "./components/NewProviderRegister";
+import InactivityTimer from "./components/InactivityTimer";
 
 const App = () => {
   const { setIsEOBOpen } = useContext(MyContext);
@@ -21,6 +22,7 @@ const App = () => {
   return (
     <Router>
       <ToastContainer />
+      <InactivityTimer />
       <Routes>
         <Route path="/" element={<ProviderLogin />} />
         <Route path="/login" element={<ProviderLogin />} />

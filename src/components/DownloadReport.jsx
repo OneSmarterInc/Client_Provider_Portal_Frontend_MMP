@@ -3,6 +3,7 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import MyContext from "../../ContextApi/MyContext";
 import { useLocation, useParams } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const DownloadReport = ({ isOpen, setIsDownloadReportOpen, ssn }) => {
   const { api } = useContext(MyContext);
@@ -31,7 +32,27 @@ const DownloadReport = ({ isOpen, setIsDownloadReportOpen, ssn }) => {
     return `${month}/${day}/${year}`;
   };
 
+  const isDateOlderThan27Months = (dateStr) => {
+    const selectedDate = new Date(dateStr);
+    const minDate = new Date();
+    minDate.setMonth(minDate.getMonth() - 27);
+    minDate.setHours(0, 0, 0, 0);
+    return selectedDate < minDate;
+  };
+
   const handleSearch = async () => {
+    // Check 27-month restriction for provider users
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user?.is_admin && !user?.is_guest) {
+      if (
+        (filters.from_date && isDateOlderThan27Months(filters.from_date)) ||
+        (filters.to_date && isDateOlderThan27Months(filters.to_date))
+      ) {
+        toast.error("You cannot view data older than 27 months from the current date.");
+        return;
+      }
+    }
+
     setLoading(true);
     setError(null);
 

@@ -53,10 +53,25 @@ const TotalClaimsFound = ({
     fetchOriginalData();
   }, [activeProvider, providerNoProp]);
 
+  const isDateOlderThan27Months = (dateStr) => {
+    const selectedDate = new Date(dateStr);
+    const minDate = new Date();
+    minDate.setMonth(minDate.getMonth() - 27);
+    minDate.setHours(0, 0, 0, 0);
+    return selectedDate < minDate;
+  };
+
   const fetchCHCLMApiData = async () => {
     // Don't fetch if dates aren't set
     if (!filterFromDate || !filterToDate) {
       return;
+    }
+    // Check 27-month restriction for provider users
+    if (!user?.is_admin && !user?.is_guest) {
+      if (isDateOlderThan27Months(filterFromDate) || isDateOlderThan27Months(filterToDate)) {
+        toast.error("You cannot view data older than 27 months from the current date.");
+        return;
+      }
     }
     try {
       setLoading(true);
