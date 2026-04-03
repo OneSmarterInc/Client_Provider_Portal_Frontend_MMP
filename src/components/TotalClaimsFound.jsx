@@ -673,6 +673,13 @@ const TotalClaimsFound = ({
                       >
                         {claim.CHHDST === "V" && claim.VOID_REASON
                           ? claim.VOID_REASON
+                          : claim.CHHDST === "V" && !claim.VOID_REASON
+                          ? <span className="relative group cursor-default">
+                              Void
+                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
+                                No void reason available for this claim
+                              </span>
+                            </span>
                           : {
                               A: "Paid",
                               D: "Deny",
@@ -684,7 +691,6 @@ const TotalClaimsFound = ({
                               S: "PDO",
                               T: "Audt",
                               U: "Inpr",
-                              V: "Void",
                             }[claim.CHHDST] || claim.CHHDST}
                       </td>
 
