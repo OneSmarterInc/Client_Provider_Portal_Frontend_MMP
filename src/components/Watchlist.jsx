@@ -2,7 +2,7 @@ import axios from "axios";
 import { useState, useEffect, useContext } from "react";
 import MyContext from "../ContextApi/MyContext";
 import { useNavigate } from "react-router-dom";
-import backgroundImage from "../assets/image.png";
+import backgroundImage from "../assets/image.webp";
 
 const Watchlist = () => {
   const { api, activeProvider } = useContext(MyContext);

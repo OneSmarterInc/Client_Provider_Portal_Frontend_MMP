@@ -1,6 +1,6 @@
 import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import backgroundImage from "../assets/image.png";
+import backgroundImage from "../assets/image.webp";
 import { Edit, Phone, AtSign, Check, Eye, EyeOff, Loader2, Plus, Trash2 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";

@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import MyContext from "../ContextApi/MyContext";
 import { useNavigate } from "react-router-dom";
-import backgroundImage from "../assets/image.png";
+import backgroundImage from "../assets/image.webp";
 
 const ForgotPasswordFlow = () => {
   const { api } = useContext(MyContext);

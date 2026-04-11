@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { ShieldCheck, FileText, Scale, Globe, AlertTriangle, UserCheck } from "lucide-react";
+import { ShieldCheck, FileText, Scale, Globe, AlertTriangle, UserCheck, Loader2 } from "lucide-react";
 
 const DisclaimerModal = ({ isOpen, onAccept, onDecline, context = "login" }) => {
   const [accepted, setAccepted] = useState(false);
   const [declined, setDeclined] = useState(false);
+  const [acceptLoading, setAcceptLoading] = useState(false);
 
   if (!isOpen) return null;
 
@@ -202,15 +203,25 @@ const DisclaimerModal = ({ isOpen, onAccept, onDecline, context = "login" }) => 
               Decline
             </button>
             <button
-              onClick={onAccept}
-              disabled={!accepted}
+              onClick={async () => {
+                setAcceptLoading(true);
+                try { await onAccept(); } finally { setAcceptLoading(false); }
+              }}
+              disabled={!accepted || acceptLoading}
               className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
-                accepted
+                accepted && !acceptLoading
                   ? "bg-[#0486A5] hover:bg-[#047B95] text-white"
                   : "bg-gray-200 text-gray-400 cursor-not-allowed"
               }`}
             >
-              Accept & Continue
+              {acceptLoading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Please wait...
+                </span>
+              ) : (
+                "Accept & Continue"
+              )}
             </button>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import backgroundImage from "../assets/image.png";
+import backgroundImage from "../assets/image.webp";
 import MyContext from "../ContextApi/MyContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 

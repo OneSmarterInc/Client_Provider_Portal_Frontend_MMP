@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import backgroundImage from "../assets/image.png";
+import backgroundImage from "../assets/image.webp";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";

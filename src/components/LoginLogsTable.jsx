@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import axios from "axios";
 import MyContext from "../ContextApi/MyContext";
 import { useNavigate } from "react-router-dom";
-import backgroundImage from "../assets/image.png";
+import backgroundImage from "../assets/image.webp";
 
 const LoginLogsTable = () => {
   const [logs, setLogs] = useState([]);

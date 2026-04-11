@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
 import MyContext from "../ContextApi/MyContext";
-import backgroundImage from "../assets/image.png";
+import backgroundImage from "../assets/image.webp";
 import { useNavigate } from "react-router-dom";
 
 export default function AdminNewProviderAdd() {

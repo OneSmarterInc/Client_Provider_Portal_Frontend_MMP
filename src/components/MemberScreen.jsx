@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import backgroundImage from "../assets/image.png";
+import backgroundImage from "../assets/image.webp";
 import TotalClaimsFound from "./TotalClaimsFound";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";

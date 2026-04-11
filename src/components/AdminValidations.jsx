@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import backgroundImage from "../assets/image.png";
+import backgroundImage from "../assets/image.webp";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle, XCircle, Pencil, Trash2, Download, Loader2, Eye } from "lucide-react";
 import MyContext from "../ContextApi/MyContext";
