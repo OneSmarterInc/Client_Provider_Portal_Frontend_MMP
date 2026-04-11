@@ -101,6 +101,7 @@ const AdminValidations = () => {
   };
 
   const isGuest = admin?.is_guest && !admin?.is_admin;
+  const isAdmin = admin?.is_admin;
 
   // --- Merged provider requests for unified pending table ---
   const mergedProviderRequests = useMemo(() => {
@@ -729,6 +730,7 @@ const AdminValidations = () => {
                 >
                   Account Management
                 </button>
+                {isAdmin && 
                 <button
                   onClick={() => handleMainTabChange("guests")}
                   className={`px-4 py-1 text-xs font-medium rounded-full transition-colors ${
@@ -739,6 +741,7 @@ const AdminValidations = () => {
                 >
                   Create Users
                 </button>
+                }
                 <button
                   onClick={() => handleMainTabChange("claims")}
                   className={`px-4 py-1 text-xs font-medium rounded-full transition-colors ${
