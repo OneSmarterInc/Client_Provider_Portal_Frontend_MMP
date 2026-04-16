@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import backgroundImage from "../assets/image.webp";
-import { Eye, EyeOff, AtSign } from "lucide-react";
+import { Eye, EyeOff, AtSign, HelpCircle, Mail, Phone } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -361,6 +361,30 @@ const ProviderLogin = () => {
               Register as a new provider.
             </a>
           </p>
+        </div>
+      </div>
+
+      {/* Help Section */}
+      <div className="bg-white/90 backdrop-blur-sm rounded-xl px-6 py-4 w-80 border-2 text-center">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <HelpCircle className="w-5 h-5 text-[#0486A5]" />
+          <h4 className="text-sm font-semibold text-gray-800">Need Help?</h4>
+        </div>
+        <div className="flex flex-col gap-2 text-sm text-gray-600">
+          <a
+            href="mailto:providers@mmpplans.com"
+            className="flex items-center justify-center gap-2 hover:text-[#0486A5] transition-colors"
+          >
+            <Mail className="w-4 h-4 text-[#0486A5]" />
+            providers@mmpplans.com
+          </a>
+          <a
+            href="tel:410-850-8638"
+            className="flex items-center justify-center gap-2 hover:text-[#0486A5] transition-colors"
+          >
+            <Phone className="w-4 h-4 text-[#0486A5]" />
+            410-850-8638
+          </a>
         </div>
       </div>
 
