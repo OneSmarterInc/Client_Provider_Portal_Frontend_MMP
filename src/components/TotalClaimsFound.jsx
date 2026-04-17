@@ -36,7 +36,7 @@ const TotalClaimsFound = ({
   // Email modal state
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [emailClaim, setEmailClaim] = useState(null);
-  const [emailRecipient, setEmailRecipient] = useState("providers@mmpplans.com");
+  const [emailRecipient, setEmailRecipient] = useState("avinashkalmegh93@gmail.com");
   const [emailSubject, setEmailSubject] = useState("Claim Details");
   const [emailMessage, setEmailMessage] = useState("");
   const [emailSending, setEmailSending] = useState(false);
@@ -338,6 +338,7 @@ const TotalClaimsFound = ({
           name: user?.name || "-",
           email: user?.email || "-",
           provider_no: provider_no || "-",
+          phone_no: user?.phone_no || "-",
         },
       });
       toast.success("Email sent successfully!");
