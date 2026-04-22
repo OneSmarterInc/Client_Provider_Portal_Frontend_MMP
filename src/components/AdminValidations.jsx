@@ -681,7 +681,7 @@ const AdminValidations = () => {
       className=" min-h-screen"
     >
       <div className="p-4 md:p-8 max-w-[95%] mx-auto">
-        <div className="w-full bg-transparent mb-7">
+        <div className="w-full bg-transparent mb-3">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-4 gap-4">
             {/* Left Section: Title, Tabs, Search, Refresh */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5 w-full sm:w-auto flex-wrap">
@@ -753,72 +753,15 @@ const AdminValidations = () => {
                   Search By Tax ID
                 </button>
               </div>
-              {/* Sub-tabs */}
-              {mainTab !== "accounts" && mainTab !== "guests" && mainTab !== "claims" && (
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setSubTab("pending")}
-                    className={`px-3 py-0.5 text-xs font-medium rounded-full transition-colors border ${
-                      subTab === "pending"
-                        ? "bg-cyan-100 text-cyan-700 border-cyan-300"
-                        : "text-gray-500 hover:text-gray-700 border-gray-300"
-                    }`}
-                  >
-                    Pending
-                  </button>
-                  <button
-                    onClick={() => setSubTab("history")}
-                    className={`px-3 py-0.5 text-xs font-medium rounded-full transition-colors border ${
-                      subTab === "history"
-                        ? "bg-cyan-100 text-cyan-700 border-cyan-300"
-                        : "text-gray-500 hover:text-gray-700 border-gray-300"
-                    }`}
-                  >
-                    Approved / Declined
-                  </button>
-                </div>
-              )}
               <div className="flex justify-between gap-4 items-center w-full md:w-auto">
-                {mainTab === "w9" && (
-                  <div className="w-full sm:w-auto">
-                    <input
-                      type="text"
-                      placeholder="Search Email or Tax ID"
-                      className="border border-gray-300 w-full sm:w-auto px-4 placeholder:text-sm py-1 rounded-full text-sm"
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      value={searchQuery}
-                    />
-                  </div>
+                {mainTab === "guests" && (
+                  <button
+                    className="text-teal-500 hover:text-teal-700 text-sm sm:w-28"
+                    onClick={() => fetchGuestList()}
+                  >
+                    <i className="fa-solid fa-clock-rotate-left mr-1"></i> Refresh
+                  </button>
                 )}
-                {mainTab === "accounts" && (
-                  <div className="w-full sm:w-auto">
-                    <input
-                      type="text"
-                      placeholder="Search Name, Email or Phone"
-                      className="border border-gray-300 w-full sm:w-auto px-4 placeholder:text-sm py-1 rounded-full text-sm"
-                      onChange={(e) => setAccountSearchQuery(e.target.value)}
-                      value={accountSearchQuery}
-                    />
-                  </div>
-                )}
-                <button
-                  className="text-teal-500 hover:text-teal-700 text-sm sm:w-28"
-                  onClick={() => {
-                    if (mainTab === "w9") {
-                      fetchAllUsers();
-                    } else if (mainTab === "accounts") {
-                      fetchAllUserAccounts();
-                    } else if (mainTab === "guests") {
-                      fetchGuestList();
-                    } else {
-                      fetchProviderRequests();
-                      fetchNewProviderRequests();
-                      fetchUserRegistrations();
-                    }
-                  }}
-                >
-                  <i className="fa-solid fa-clock-rotate-left mr-1"></i> Refresh
-                </button>
               </div>
             </div>
 
@@ -851,6 +794,161 @@ const AdminValidations = () => {
           </div>
         </div>
 
+        {/* W9 Requests Search + Sub-tabs + Counts Row */}
+        {mainTab === "w9" && (
+          <div className="flex flex-col md:flex-row md:items-center justify-between px-4 gap-3 mb-5">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setSubTab("pending")}
+                  className={`px-3 py-0.5 text-xs font-medium rounded-full transition-colors border ${
+                    subTab === "pending"
+                      ? "bg-cyan-100 text-cyan-700 border-cyan-300"
+                      : "text-gray-500 hover:text-gray-700 border-gray-300"
+                  }`}
+                >
+                  Pending
+                </button>
+                <button
+                  onClick={() => setSubTab("history")}
+                  className={`px-3 py-0.5 text-xs font-medium rounded-full transition-colors border ${
+                    subTab === "history"
+                      ? "bg-cyan-100 text-cyan-700 border-cyan-300"
+                      : "text-gray-500 hover:text-gray-700 border-gray-300"
+                  }`}
+                >
+                  Approved / Declined
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Search Email or Tax ID"
+                  className="border border-gray-300 w-full sm:w-auto px-4 placeholder:text-sm py-1 rounded-full text-sm"
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchQuery}
+                />
+                <button
+                  className="text-teal-500 hover:text-teal-700 text-sm whitespace-nowrap"
+                  onClick={() => fetchAllUsers()}
+                >
+                  <i className="fa-solid fa-clock-rotate-left mr-1"></i> Refresh
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <span className="text-xs font-medium text-yellow-700">
+                Pending: <span className="font-bold">{users.filter((u) => u.status === "in_progress").length}</span>
+              </span>
+              <span className="text-gray-300">|</span>
+              <span className="text-xs font-medium text-green-700">
+                Approved: <span className="font-bold">{users.filter((u) => u.status === "approved").length}</span>
+              </span>
+              <span className="text-gray-300">|</span>
+              <span className="text-xs font-medium text-red-700">
+                Declined: <span className="font-bold">{users.filter((u) => u.status === "declined").length}</span>
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Provider Requests Sub-tabs + Counts Row */}
+        {mainTab === "providers" && (
+          <div className="flex flex-col md:flex-row md:items-center justify-between px-4 gap-3 mb-5">
+            <div className="flex items-center gap-4">
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setSubTab("pending")}
+                  className={`px-3 py-0.5 text-xs font-medium rounded-full transition-colors border ${
+                    subTab === "pending"
+                      ? "bg-cyan-100 text-cyan-700 border-cyan-300"
+                      : "text-gray-500 hover:text-gray-700 border-gray-300"
+                  }`}
+                >
+                  Pending
+                </button>
+                <button
+                  onClick={() => setSubTab("history")}
+                  className={`px-3 py-0.5 text-xs font-medium rounded-full transition-colors border ${
+                    subTab === "history"
+                      ? "bg-cyan-100 text-cyan-700 border-cyan-300"
+                      : "text-gray-500 hover:text-gray-700 border-gray-300"
+                  }`}
+                >
+                  Approved / Declined
+                </button>
+              </div>
+              <button
+                className="text-teal-500 hover:text-teal-700 text-sm whitespace-nowrap"
+                onClick={() => {
+                  fetchProviderRequests();
+                  fetchNewProviderRequests();
+                  fetchUserRegistrations();
+                }}
+              >
+                <i className="fa-solid fa-clock-rotate-left mr-1"></i> Refresh
+              </button>
+            </div>
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <span className="text-xs font-medium text-yellow-700">
+                Pending: <span className="font-bold">{mergedProviderRequests.length}</span>
+              </span>
+              <span className="text-gray-300">|</span>
+              <span className="text-xs font-medium text-green-700">
+                Approved: <span className="font-bold">
+                  {providerRequests.filter((r) => r.status === "approved").length +
+                    newProviderRequests.filter((u) => u.new_provider_status === "approved").length}
+                </span>
+              </span>
+              <span className="text-gray-300">|</span>
+              <span className="text-xs font-medium text-red-700">
+                Declined: <span className="font-bold">
+                  {providerRequests.filter((r) => r.status === "declined").length +
+                    newProviderRequests.filter((u) => u.new_provider_status === "declined").length}
+                </span>
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Accounts Search + Counts Row */}
+        {mainTab === "accounts" && (
+          <div className="flex flex-col md:flex-row md:items-center justify-between px-4 gap-3 mb-5">
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <input
+                type="text"
+                placeholder="Search Name, Email or Phone"
+                className="border border-gray-300 w-full md:w-auto px-4 placeholder:text-sm py-1 rounded-full text-sm"
+                onChange={(e) => setAccountSearchQuery(e.target.value)}
+                value={accountSearchQuery}
+              />
+              <button
+                className="text-teal-500 hover:text-teal-700 text-sm whitespace-nowrap"
+                onClick={() => fetchAllUserAccounts()}
+              >
+                <i className="fa-solid fa-clock-rotate-left mr-1"></i> Refresh
+              </button>
+            </div>
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <span className="text-xs font-medium text-gray-700">
+                Total: <span className="font-bold text-gray-900">{allUsers.length}</span>
+              </span>
+              <span className="text-gray-300">|</span>
+              <span className="text-xs font-medium text-blue-700">
+                Providers: <span className="font-bold">{allUsers.filter((u) => !u.is_admin && !u.is_guest).length}</span>
+              </span>
+              <span className="text-gray-300">|</span>
+              <span className="text-xs font-medium text-purple-700">
+                Admins: <span className="font-bold">{allUsers.filter((u) => u.is_admin).length}</span>
+              </span>
+              <span className="text-gray-300">|</span>
+              <span className="text-xs font-medium text-amber-700">
+                Guests: <span className="font-bold">{allUsers.filter((u) => u.is_guest && !u.is_admin).length}</span>
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* ===== CONTENT ===== */}
         {mainTab === "claims" ? (
           <div className="bg-white shadow-sm rounded-xl p-6">
@@ -863,12 +961,13 @@ const AdminValidations = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
             </div>
           ) : (
-            <div className="bg-white shadow-sm rounded-xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+            <div>
+              <div className="bg-white shadow-sm rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                       <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
@@ -994,6 +1093,7 @@ const AdminValidations = () => {
                     )}
                   </tbody>
                 </table>
+              </div>
               </div>
             </div>
           )
