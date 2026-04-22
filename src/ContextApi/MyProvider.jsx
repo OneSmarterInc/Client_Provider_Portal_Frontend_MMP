@@ -6,8 +6,8 @@ const MyProvider = ({ children }) => {
   // const api = "http://127.0.0.1:8000/provider";
   //  const api = "http://170.249.90.216:3181/provider"; //(Development)
   // const api = "http://170.249.90.213:3181/provider"; //(Production)
-  // const api = "https://providers.mmpplans.com/api";      //(Production)
-   const api = "https://forms.mmpplans.com/provider"; //(Development)
+   const api = "https://providers.mmpplans.com/api";      //(Production)
+  // const api = "https://forms.mmpplans.com/provider"; //(Development)
 
   const [isEOBOpen, setIsEOBOpen] = useState();
 
